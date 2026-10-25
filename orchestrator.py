@@ -324,7 +324,10 @@ def cli() -> None:
         logger.info("Backfill from {} to {}: {} trading days", start, end, len(days))
         for d in days:
             logger.info("---- backfill {} ----", d)
-            run_for_date(d, scrapers=enabled, dry=args.dry_run)
+            try:
+                run_for_date(d, scrapers=enabled, dry=args.dry_run)
+            except Exception as e:  # e.g. NSE homepage timeout while opening the session
+                logger.error("backfill {} aborted: {}", d, e)
             _time.sleep(pause)
         return
 
