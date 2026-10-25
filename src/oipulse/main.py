@@ -169,6 +169,14 @@ app.add_middleware(
 )
 
 
+# --- merged NSE Pulse backends: EOD research API + fundamentals (JSON via Accept header) ---
+from .research_api import router as _research_router  # noqa: E402
+from ..fundamentals.web.app import app as _fundamentals_app  # noqa: E402
+
+app.include_router(_research_router)
+app.mount("/api/fundamentals", _fundamentals_app)
+
+
 @app.middleware("http")
 async def _static_auth_guard(request: Request, call_next):
     """Single auth checkpoint for all HTTP requests (API + static). An

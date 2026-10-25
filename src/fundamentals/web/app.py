@@ -64,7 +64,36 @@ def _cached(ttl: int = _CACHE_TTL_SEC):
     return decorator
 
 ROOT = Path(__file__).parent
-TEMPLATES = Jinja2Templates(directory=str(ROOT / "templates"))
+def _plain(v: Any) -> Any:
+    """Template context -> JSON-safe structure (drops callables/request, NaN -> None)."""
+    if isinstance(v, dict):
+        return {k: _plain(x) for k, x in v.items() if k != "request" and not callable(x)}
+    if isinstance(v, (list, tuple)):
+        return [_plain(x) for x in v]
+    if isinstance(v, Decimal):
+        return float(v)
+    if isinstance(v, (date, datetime)):
+        return v.isoformat()
+    if hasattr(v, "item") and not isinstance(v, (str, bytes)):  # numpy scalar
+        v = v.item()
+    if isinstance(v, float) and v != v:
+        return None
+    return v
+
+
+class _Templates(Jinja2Templates):
+    """Serves the same page context as JSON when the client asks for it (`Accept: application/json`
+    or `?format=json`). This is how the React UI reuses every page's queries without a second copy."""
+
+    def TemplateResponse(self, request, name, context=None, *a, **kw):  # noqa: N802
+        wants_json = request.query_params.get("format") == "json" or \
+            "application/json" in request.headers.get("accept", "")
+        if wants_json and context is not None:
+            return JSONResponse(_plain(context))
+        return super().TemplateResponse(request, name, context, *a, **kw)
+
+
+TEMPLATES = _Templates(directory=str(ROOT / "templates"))
 
 app = FastAPI(title="stock_db UI", version="1.0")
 app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
