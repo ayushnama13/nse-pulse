@@ -1,80 +1,28 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   OBSIDIAN GLASS — global shell stylesheet.
-   Near-black graphite canvas · translucent glass slabs · electric-cyan light.
-   Ant handles component theming; this covers tokens chart code reads via CSS
-   vars, the glass material, the shell layout (rail + header), and primitives.
+   Shell stylesheet. Tokens follow openalgo's neutral shadcn palette
+   (index.css); the legacy --bg/--fg/--gold names below are kept so existing
+   pages and chart code reskin without edits. Light = :root, dark = .dark.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --bg: #05070b;
-  --bg-1: #0a0d13;
-  --bg-2: #0f131b;
-  --bg-3: #161b26;
-  --line: #1c2330;
-  --line-2: #293245;
-  --fg: #eaeef6;
-  --fg-2: #c4cbda;
-  --fg-3: #7e89a0;
-  --fg-4: #4f586d;
-  --gold: #22d3ee;
-  --gold-soft: #7debff;
-  --gold-deep: #0ea5c4;
-  --gold-tint: rgba(34, 211, 238, 0.1);
-  --bull: #3ecf8e;
-  --bull-tint: rgba(62, 207, 142, 0.12);
-  --bear: #ff5470;
-  --bear-tint: rgba(255, 84, 112, 0.12);
-  --ce: #5b9bff;
-  --ce-tint: rgba(91, 155, 255, 0.14);
-  --pe: #ff7e67;
-  --pe-tint: rgba(255, 126, 103, 0.14);
-  --violet: #a78bfa;
-  --amber: #fbbf24;
-  --info: #2dd4bf;
-
-  /* Glass material */
-  --glass-panel: rgba(15, 19, 27, 0.72);
-  --glass-raised: rgba(22, 27, 38, 0.82);
-  --glass-overlay: rgba(13, 17, 25, 0.92);
-  --glass-edge: rgba(255, 255, 255, 0.07);
-  --glass-catch: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-  /* Elevation — deep soft shadows + top-edge light catch */
-  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.35), var(--glass-catch);
-  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.45), var(--glass-catch);
-  --shadow-3: 0 20px 56px rgba(0, 0, 0, 0.6), var(--glass-catch);
-  --glow-accent: 0 0 18px rgba(34, 211, 238, 0.3);
-
-  /* Motion — one curve to rule them all */
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --t-fast: 150ms;
-  --t-med: 220ms;
-
-  /* Shell geometry */
-  --rail-w: 64px;
-  --rail-w-open: 198px;
-}
-
-/* ── PORCELAIN GLASS — the light twin ───────────────────────────────────── */
-[data-theme='light'] {
-  --bg: #eef1f7;
-  --bg-1: #f6f8fc;
+  --bg: #ffffff;
+  --bg-1: #fafafa;
   --bg-2: #ffffff;
-  --bg-3: #e7ebf3;
-  --line: #dde2ec;
-  --line-2: #c9d0de;
-  --fg: #101622;
-  --fg-2: #2c3548;
-  --fg-3: #5d6880;
-  --fg-4: #8d97ac;
-  --gold: #0891b2;
-  --gold-soft: #22d3ee;
-  --gold-deep: #0e7490;
-  --gold-tint: rgba(8, 145, 178, 0.1);
-  --bull: #0e9f6e;
-  --bull-tint: rgba(14, 159, 110, 0.12);
-  --bear: #e11d48;
-  --bear-tint: rgba(225, 29, 72, 0.1);
+  --bg-3: #f5f5f5;
+  --line: #e5e5e5;
+  --line-2: #d4d4d4;
+  --fg: #0a0a0a;
+  --fg-2: #404040;
+  --fg-3: #737373;
+  --fg-4: #a3a3a3;
+  --gold: #2563eb;
+  --gold-soft: #60a5fa;
+  --gold-deep: #1d4ed8;
+  --gold-tint: rgba(37, 99, 235, 0.08);
+  --bull: #16a34a;
+  --bull-tint: rgba(22, 163, 74, 0.1);
+  --bear: #dc2626;
+  --bear-tint: rgba(220, 38, 38, 0.08);
   --ce: #2563eb;
   --ce-tint: rgba(37, 99, 235, 0.1);
   --pe: #ea580c;
@@ -83,16 +31,57 @@
   --amber: #d97706;
   --info: #0d9488;
 
-  --glass-panel: rgba(255, 255, 255, 0.78);
-  --glass-raised: rgba(255, 255, 255, 0.92);
-  --glass-overlay: rgba(255, 255, 255, 0.96);
-  --glass-edge: rgba(16, 22, 34, 0.09);
-  --glass-catch: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-panel: #ffffff;
+  --glass-raised: #ffffff;
+  --glass-overlay: #ffffff;
+  --glass-edge: #e5e5e5;
+  --glass-catch: 0 0 #0000;
 
-  --shadow-1: 0 2px 8px rgba(31, 41, 60, 0.07), var(--glass-catch);
-  --shadow-2: 0 10px 28px rgba(31, 41, 60, 0.1), var(--glass-catch);
-  --shadow-3: 0 20px 48px rgba(31, 41, 60, 0.16), var(--glass-catch);
-  --glow-accent: 0 0 16px rgba(8, 145, 178, 0.25);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-3: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --glow-accent: none;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 150ms;
+  --t-med: 220ms;
+}
+
+.dark {
+  --bg: #0a0a0a;
+  --bg-1: #111111;
+  --bg-2: #171717;
+  --bg-3: #262626;
+  --line: #262626;
+  --line-2: #404040;
+  --fg: #fafafa;
+  --fg-2: #d4d4d4;
+  --fg-3: #a3a3a3;
+  --fg-4: #737373;
+  --gold: #60a5fa;
+  --gold-soft: #93c5fd;
+  --gold-deep: #3b82f6;
+  --gold-tint: rgba(96, 165, 250, 0.12);
+  --bull: #4ade80;
+  --bull-tint: rgba(74, 222, 128, 0.12);
+  --bear: #f87171;
+  --bear-tint: rgba(248, 113, 113, 0.12);
+  --ce: #60a5fa;
+  --ce-tint: rgba(96, 165, 250, 0.14);
+  --pe: #fb923c;
+  --pe-tint: rgba(251, 146, 60, 0.14);
+  --violet: #a78bfa;
+  --amber: #fbbf24;
+  --info: #2dd4bf;
+
+  --glass-panel: #171717;
+  --glass-raised: #1f1f1f;
+  --glass-overlay: #171717;
+  --glass-edge: rgba(255, 255, 255, 0.1);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -105,42 +94,19 @@ body,
   height: 100%;
 }
 
-/* The canvas: graphite void with a faint radial light from top-center, plus
-   a 1.5% film grain so nothing reads as a flat rectangle. */
 body {
-  background:
-    radial-gradient(1100px 520px at 50% -8%, rgba(34, 211, 238, 0.07), transparent 60%),
-    radial-gradient(900px 700px at 85% 110%, rgba(167, 139, 250, 0.05), transparent 55%),
-    var(--bg);
-  background-attachment: fixed;
+  background: var(--bg);
   color: var(--fg);
-  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
-  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
 }
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.015;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-[data-theme='light'] body {
-  background:
-    radial-gradient(1100px 520px at 50% -8%, rgba(8, 145, 178, 0.06), transparent 60%),
-    radial-gradient(900px 700px at 85% 110%, rgba(124, 58, 237, 0.04), transparent 55%),
-    var(--bg);
-  background-attachment: fixed;
-}
 
 ::selection {
   background: var(--gold);
-  color: #04141a;
+  color: var(--bg);
 }
 
 /* Slim glass scrollbars */

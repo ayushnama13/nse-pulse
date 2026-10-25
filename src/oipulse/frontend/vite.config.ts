@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 // CUTOVER DONE: the React app is the root UI. FastAPI serves ./dist at "/"
@@ -8,7 +9,7 @@ import { fileURLToPath, URL } from 'node:url'
 // In dev, Vite proxies /api and /ws to the FastAPI backend on :8000.
 export default defineConfig({
   base: '/',
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
