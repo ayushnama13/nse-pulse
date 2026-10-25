@@ -117,6 +117,8 @@ def _broadcast(symbol: str, snap: dict) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init()
+    from ..storage.database import init_db as _init_eod_db
+    _init_eod_db()  # EOD research tables, so /api/research works on a fresh DB
     fetcher.init()
     _ensure_sem()
     scheduler.set_broadcaster(_broadcast)
