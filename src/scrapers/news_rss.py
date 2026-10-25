@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any
 from xml.etree import ElementTree as ET
 
+import requests
 from loguru import logger
 
 from ..session import NSESession
@@ -20,12 +21,15 @@ from ..utils.archival import archive_payload
 
 
 # Atom + RSS 2.0 both work; we parse minimally to stay dependency-free.
+_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"
+
 _DEFAULT_FEEDS: list[tuple[str, str]] = [
-    ("moneycontrol_markets", "https://www.moneycontrol.com/rss/marketsnews.xml"),
-    ("moneycontrol_business", "https://www.moneycontrol.com/rss/business.xml"),
     ("et_markets", "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"),
+    ("et_stocks", "https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms"),
     ("livemint_markets", "https://www.livemint.com/rss/markets"),
-    ("nse_announcements", "https://www.nseindia.com/api/corporate-announcements?index=equities"),
+    ("livemint_companies", "https://www.livemint.com/rss/companies"),
+    ("business_standard_markets", "https://www.business-standard.com/rss/markets-106.rss"),
+    ("businessline_markets", "https://www.thehindubusinessline.com/markets/feeder/default.rss"),
 ]
 
 
@@ -113,7 +117,11 @@ def fetch_news(
     rows: list[dict[str, Any]] = []
     for source, url in feeds:
         try:
-            raw = session.get(url, expect_json=False)
+            # Third-party feeds: plain HTTP, one short attempt. Going through the NSE session would
+            # send NSE headers and sit in its 60-300 s retry backoff on any 4xx/5xx.
+            r = requests.get(url, timeout=15, headers={"User-Agent": _UA})
+            r.raise_for_status()
+            raw = r.content
         except Exception as e:
             logger.warning("RSS fetch failed for {} ({}): {}", source, url, e)
             continue

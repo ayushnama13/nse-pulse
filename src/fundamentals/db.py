@@ -279,16 +279,18 @@ def upsert(
 
     def _set_expr(c: str) -> str:
         if c in coalesce_set:
-            return f"{c}=COALESCE(excluded.{c}, {table}.{c})"
-        return f"{c}=excluded.{c}"
+            return f'"{c}"=COALESCE(excluded."{c}", {table}."{c}")'
+        return f'"{c}"=excluded."{c}"'
 
     set_clause = ",".join(_set_expr(c) for c in update_cols) if update_cols else None
+    conflict_sql = ",".join(f'"{c}"' for c in conflict_cols)
     on_conflict = (
-        f"ON CONFLICT ({','.join(conflict_cols)}) DO UPDATE SET {set_clause}"
+        f"ON CONFLICT ({conflict_sql}) DO UPDATE SET {set_clause}"
         if set_clause
-        else f"ON CONFLICT ({','.join(conflict_cols)}) DO NOTHING"
+        else f"ON CONFLICT ({conflict_sql}) DO NOTHING"
     )
-    sql = (f"INSERT INTO {table} ({','.join(cols)}) VALUES ({','.join('?' * len(cols))}) "
+    cols_sql = ",".join(f'"{c}"' for c in cols)
+    sql = (f"INSERT INTO {table} ({cols_sql}) VALUES ({','.join('?' * len(cols))}) "
            f"{on_conflict}")
     values = [tuple(_py(r.get(c)) for c in cols) for r in rows]
     with get_conn() as conn:

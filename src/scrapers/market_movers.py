@@ -7,29 +7,32 @@ from loguru import logger
 from src.scrapers.base import _load_endpoints, _safe_float, _safe_int
 from src.session import NSESession
 
-_MOVER_INDICES = ("NIFTY", "BANKNIFTY", "NIFTY500")
+_MOVER_UNIVERSES = ("NIFTY", "BANKNIFTY", "allSec")
 
 
 def fetch_gainers_losers(session: NSESession, d: date) -> list[dict]:
     ep = _load_endpoints()
     url = ep["equity"]["gainers_losers"]
     records: list[dict] = []
+    seen: set[str] = set()
 
-    for index in _MOVER_INDICES:
-        data = session.get(url, params={"index": index})
-        for bucket in ("GAINERS", "LOSERS"):
-            bucket_data = data.get(bucket, {}) if isinstance(data, dict) else {}
-            items = bucket_data.get("data", []) if isinstance(bucket_data, dict) else []
-            for item in items:
+    # The endpoint returns every universe at once; `index` picks the direction (NSE spells it "loosers").
+    for direction in ("gainers", "loosers"):
+        data = session.get(url, params={"index": direction})
+        for universe in _MOVER_UNIVERSES:
+            bucket = data.get(universe, {}) if isinstance(data, dict) else {}
+            for item in bucket.get("data", []) if isinstance(bucket, dict) else []:
+                sym = item.get("symbol", "")
+                if not sym or sym in seen:
+                    continue
+                seen.add(sym)
                 records.append({
                     "date": d,
-                    "symbol": item.get("symbol", ""),
-                    "ltp": _safe_float(item.get("ltp") or item.get("lastPrice")),
-                    "change": _safe_float(item.get("change") or item.get("netPrice")),
-                    "pct_change": _safe_float(item.get("pChange") or item.get("percentChange")),
-                    "volume": _safe_int(
-                        item.get("totalTradedVolume") or item.get("volume") or item.get("qty")
-                    ),
+                    "symbol": sym,
+                    "ltp": _safe_float(item.get("ltp")),
+                    "change": _safe_float(item.get("net_price")),
+                    "pct_change": _safe_float(item.get("perChange")),
+                    "volume": _safe_int(item.get("trade_quantity")),
                     "prev_volume": None,
                     "volume_change_pct": None,
                 })
