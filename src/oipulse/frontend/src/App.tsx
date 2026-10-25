@@ -3,19 +3,22 @@ import { ConfigProvider, App as AntApp } from 'antd'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { darkTheme, lightTheme } from './theme'
 import { useShell } from './store'
-import { useHashSync, TAB_ORDER, type TabKey } from './router'
+import { useHashSync, type TabKey } from './router'
+import { SECTIONS } from './nav'
 import { TAB_LABELS, OPTION_TABS } from './nav'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOptionChain, useForceSnapshot, qk } from './api/queries'
 import { subscribeLive } from './api/live'
-import { Header } from './components/Header'
-import { Sidebar } from './components/Sidebar'
+import { Navbar, MobileBottomNav } from './components/Navbar'
+import { SectionBar } from './components/SectionBar'
 import { StatCards } from './components/StatCards'
 import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsHelp } from './components/ShortcutsHelp'
 import { GlassEmpty, GlassLoader } from './components/Glass'
 import { Placeholder } from './tabs/Placeholder'
 
+const DashboardTab = lazy(() => import('./tabs/DashboardTab').then((m) => ({ default: m.DashboardTab })))
+const ToolsTab = lazy(() => import('./tabs/ToolsTab').then((m) => ({ default: m.ToolsTab })))
 const HomeTab = lazy(() => import('./tabs/HomeTab').then((m) => ({ default: m.HomeTab })))
 const ChainTab = lazy(() => import('./tabs/ChainTab').then((m) => ({ default: m.ChainTab })))
 const PulseTab = lazy(() => import('./tabs/PulseTab').then((m) => ({ default: m.PulseTab })))
@@ -87,6 +90,8 @@ function useLiveData() {
 }
 
 const TAB_COMPONENTS: Partial<Record<TabKey, ComponentType>> = {
+  dashboard: DashboardTab,
+  tools: ToolsTab,
   home: HomeTab,
   chain: ChainTab,
   pulse: PulseTab,
@@ -159,10 +164,11 @@ function Shell() {
   // reflect theme/density on <html> for CSS hooks
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    document.documentElement.classList.toggle('dark', theme === 'dark')
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : 'comfortable'
   }, [theme, density])
 
-  // keyboard shortcuts: Ctrl/⌘+K palette, 1–9 tabs, S snapshot, ? help
+  // keyboard shortcuts: Ctrl/⌘+K palette, 1–7 sections, S snapshot, ? help
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -174,8 +180,8 @@ function Shell() {
       const t = e.target as HTMLElement
       if (t && ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) return
       if (e.key >= '1' && e.key <= '9') {
-        const idx = parseInt(e.key, 10) - 1
-        if (idx < TAB_ORDER.length) setTab(TAB_ORDER[idx])
+        const sec = SECTIONS[parseInt(e.key, 10) - 1]
+        if (sec) setTab(sec.tabs[0])
       } else if (e.key === 's' || e.key === 'S') {
         snapNow({ symbol, expiry })
       } else if (e.key === '?') {
@@ -187,15 +193,14 @@ function Shell() {
   }, [setTab, snapNow, symbol, expiry])
 
   return (
-    <div className={`app-shell${live === 'stale' ? ' app-stale' : ''}`}>
-      <Sidebar />
-      <div className="app-body">
-        <Header />
-        <main className="app-main" key={tab}>
-          {tab !== 'home' && OPTION_TABS.includes(tab) && <StatCards />}
-          <Panel />
-        </main>
-      </div>
+    <div className={`min-h-full pb-14 md:pb-0${live === 'stale' ? ' app-stale' : ''}`}>
+      <Navbar onSearch={() => setPaletteOpen(true)} onHelp={() => setHelpOpen(true)} />
+      <SectionBar />
+      <main className="app-main" key={tab}>
+        {tab !== 'home' && OPTION_TABS.includes(tab) && <StatCards />}
+        <Panel />
+      </main>
+      <MobileBottomNav />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>

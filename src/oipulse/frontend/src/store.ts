@@ -77,7 +77,7 @@ function push(arr: HistPoint[], p: HistPoint): HistPoint[] {
 export const useShell = create<ShellState>((set) => ({
   symbol: 'NIFTY',
   expiry: undefined,
-  tab: 'home',
+  tab: 'dashboard',
   theme: 'dark',
   density: 'comfortable',
   snap: null,
