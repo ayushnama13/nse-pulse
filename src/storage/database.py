@@ -31,6 +31,7 @@ def get_engine() -> Engine:
     @event.listens_for(_ENGINE, "connect")
     def _set_sqlite_pragmas(dbapi_conn, _):
         cur = dbapi_conn.cursor()
+        cur.execute("PRAGMA busy_timeout=30000")  # several processes share this DB
         cur.execute("PRAGMA journal_mode=WAL")
         cur.execute("PRAGMA synchronous=NORMAL")
         cur.execute("PRAGMA foreign_keys=ON")

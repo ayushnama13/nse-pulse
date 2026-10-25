@@ -113,15 +113,25 @@ export function FiiDiiTab() {
       <Select value={days} onChange={setDays} style={{ marginBottom: 12 }} options={[30, 90, 365].map((v) => ({ value: v, label: `${v}d` }))} />
       <Q q={q}>
         {(d: any) => {
-          const cols = d.daily.length ? Object.keys(d.daily[0]).filter((k) => /net/i.test(k)) : []
+          const dates = [...new Set<string>(d.daily.map((r: any) => String(r.date).slice(0, 10)))].sort()
+          const cats = [...new Set<string>(d.daily.map((r: any) => r.category))]
+          const net = (c: string, dt: string) => d.daily.find((r: any) => r.category === c && String(r.date).slice(0, 10) === dt)?.net_value ?? null
           const option = {
             tooltip: { trigger: 'axis' }, legend: {}, grid: { left: 56, right: 24, top: 36, bottom: 40 },
-            xAxis: { type: 'category', data: d.daily.map((r: any) => String(r.date).slice(0, 10)) }, yAxis: {},
-            series: cols.map((c) => ({ name: c, type: 'bar', data: d.daily.map((r: any) => r[c]) })),
+            xAxis: { type: 'category', data: dates }, yAxis: { name: '₹ Cr' },
+            series: cats.map((c) => ({ name: c, type: 'bar', data: dates.map((dt) => net(c, dt)) })),
+          }
+          const oiDates = [...new Set<string>(d.fo_participant_oi.map((r: any) => String(r.date).slice(0, 10)))].sort()
+          const oiNet = (who: string) => oiDates.map((dt) => d.fo_participant_oi.filter((r: any) => r.participant === who && String(r.date).slice(0, 10) === dt && r.instrument === 'FUTIDX').reduce((a: number, r: any) => a + (r.net_oi ?? 0), 0))
+          const oiOption = {
+            tooltip: { trigger: 'axis' }, legend: {}, grid: { left: 64, right: 24, top: 36, bottom: 56 },
+            xAxis: { type: 'category', data: oiDates }, yAxis: { scale: true }, dataZoom: [{ type: 'inside' }],
+            series: ['FII', 'DII', 'Pro', 'Client'].map((w) => ({ name: w, type: 'line', showSymbol: false, data: oiNet(w) })),
           }
           return (
             <>
-              {cols.length > 0 && <Section title="Net flows"><EChart option={option as any} height={320} /></Section>}
+              <Section title="Cash market net flows (₹ Cr) — NSE publishes one session at a time, so history builds daily"><EChart option={option as any} height={280} /></Section>
+              <Section title="Index futures: net open interest by participant"><EChart option={oiOption as any} height={320} /></Section>
               <Section title="Daily"><DataTable rows={[...d.daily].reverse()} /></Section>
               <Section title="F&O participant OI"><DataTable rows={d.fo_participant_oi} /></Section>
             </>
