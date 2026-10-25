@@ -12,23 +12,11 @@
 import { useEffect } from 'react'
 import { useShell } from './store'
 import { SYMBOLS } from './api/types'
+import { NAV_GROUPS } from './nav'
 
-export const TAB_ORDER = [
-  'home',
-  'chain',
-  'oi',
-  'vol',
-  'trends',
-  'analytics',
-  'macro',
-  'multi',
-  'compare',
-  'pulse',
-  'calendar',
-  'payoff',
-] as const
+export const TAB_ORDER = NAV_GROUPS.flatMap((g) => [...g.tabs]) as readonly string[]
 
-export type TabKey = (typeof TAB_ORDER)[number]
+export type TabKey = string
 
 interface HashState {
   tab?: string

@@ -2,15 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal, Input } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { useShell } from '@/store'
-import { TAB_ORDER, type TabKey } from '@/router'
+import { TAB_ORDER } from '@/router'
+import { TAB_LABELS } from '@/nav'
 import { SYMBOLS } from '@/api/types'
 import { useForceSnapshot } from '@/api/queries'
-
-const TAB_LABELS: Record<TabKey, string> = {
-  home: 'Home',
-  chain: 'Option Chain', oi: 'OI & Gamma', vol: 'Vol & Skew', trends: 'Trends', analytics: 'Analytics',
-  macro: 'Macro', multi: 'Multi-Index', compare: 'Compare', pulse: 'Pulse', calendar: 'Calendar', payoff: 'Payoff',
-}
 
 interface Cmd {
   id: string

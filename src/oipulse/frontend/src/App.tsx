@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { darkTheme, lightTheme } from './theme'
 import { useShell } from './store'
 import { useHashSync, TAB_ORDER, type TabKey } from './router'
+import { TAB_LABELS, OPTION_TABS } from './nav'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOptionChain, useForceSnapshot, qk } from './api/queries'
 import { subscribeLive } from './api/live'
@@ -28,24 +29,30 @@ const CompareTab = lazy(() => import('./tabs/CompareTab').then((m) => ({ default
 const CalendarTab = lazy(() => import('./tabs/CalendarTab').then((m) => ({ default: m.CalendarTab })))
 const PayoffTab = lazy(() => import('./tabs/PayoffTab').then((m) => ({ default: m.PayoffTab })))
 
+const MarketTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.MarketTab })))
+const TickerTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.TickerTab })))
+const IndicesTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.IndicesTab })))
+const FiiDiiTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.FiiDiiTab })))
+const DealsTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.DealsTab })))
+const NewsTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.NewsTab })))
+const EodChainTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.EodChainTab })))
+const DataQualityTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.DataQualityTab })))
+const ScreenerTab = lazy(() => import('./tabs/research/EquityTabs').then((m) => ({ default: m.ScreenerTab })))
+const FDashTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FDashTab })))
+const FCompaniesTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FCompaniesTab })))
+const FCompanyTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FCompanyTab })))
+const FSectorsTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FSectorsTab })))
+const FTopTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FTopTab })))
+const FScreensTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FScreensTab })))
+const FSqlTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FSqlTab })))
+const FHealthTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m) => ({ default: m.FHealthTab })))
+const PortfolioTab = lazy(() => import('./tabs/research/PortfolioTabs').then((m) => ({ default: m.PortfolioTab })))
+const AlertsTab = lazy(() => import('./tabs/research/PortfolioTabs').then((m) => ({ default: m.AlertsTab })))
+const WatchlistsTab = lazy(() => import('./tabs/research/PortfolioTabs').then((m) => ({ default: m.WatchlistsTab })))
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 })
-
-const TAB_LABELS: Record<TabKey, string> = {
-  home: 'Home',
-  chain: 'Option Chain',
-  oi: 'OI & Gamma',
-  vol: 'Vol & Skew',
-  trends: 'Trends',
-  analytics: 'Analytics',
-  macro: 'Macro',
-  multi: 'Multi-Index',
-  compare: 'Compare',
-  pulse: 'Pulse',
-  calendar: 'Calendar',
-  payoff: 'Payoff',
-}
 
 /** Live data orchestration: WS push (primary) + poll fallback → store.
  *  While WS is healthy the poll relaxes to 60s; push frames are also written
@@ -92,6 +99,11 @@ const TAB_COMPONENTS: Partial<Record<TabKey, ComponentType>> = {
   compare: CompareTab,
   calendar: CalendarTab,
   payoff: PayoffTab,
+  market: MarketTab, ticker: TickerTab, indices: IndicesTab, fiidii: FiiDiiTab, deals: DealsTab, screener: ScreenerTab,
+  eodchain: EodChainTab, news: NewsTab, dq: DataQualityTab,
+  fdash: FDashTab, fcompanies: FCompaniesTab, fcompany: FCompanyTab, fsectors: FSectorsTab, ftop: FTopTab,
+  fscreens: FScreensTab, fsql: FSqlTab, fhealth: FHealthTab,
+  portfolio: PortfolioTab, alerts: AlertsTab, watchlists: WatchlistsTab,
 }
 
 /** One tab crashing must never black out the shell — contain it, keep the
@@ -180,7 +192,7 @@ function Shell() {
       <div className="app-body">
         <Header />
         <main className="app-main" key={tab}>
-          {tab !== 'home' && <StatCards />}
+          {tab !== 'home' && OPTION_TABS.includes(tab) && <StatCards />}
           <Panel />
         </main>
       </div>

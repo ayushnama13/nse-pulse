@@ -15,12 +15,37 @@ import {
   RiseOutlined,
   SlidersOutlined,
   TableOutlined,
+  AlertOutlined,
+  ApartmentOutlined,
+  BankOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  EyeOutlined,
+  FilterOutlined,
+  FundOutlined,
+  PieChartOutlined,
+  ProfileOutlined,
+  ReadOutlined,
+  SafetyOutlined,
+  StockOutlined,
+  SwapOutlined,
+  TrophyOutlined,
+  WalletOutlined,
 } from '@ant-design/icons'
 import { useShell } from '@/store'
 import { TAB_ORDER, type TabKey } from '@/router'
+import { NAV_GROUPS, TAB_LABELS } from '@/nav'
 import { Logo } from './Glass'
 
-const NAV: Record<TabKey, { label: string; icon: ReactNode }> = {
+const ICONS: Record<string, ReactNode> = {
+  market: <FundOutlined />, ticker: <StockOutlined />, indices: <LineChartOutlined />, fiidii: <SwapOutlined />,
+  deals: <BankOutlined />, screener: <FilterOutlined />, eodchain: <TableOutlined />, news: <ReadOutlined />,
+  fdash: <PieChartOutlined />, fcompanies: <ApartmentOutlined />, fcompany: <ProfileOutlined />, fsectors: <AppstoreOutlined />,
+  ftop: <TrophyOutlined />, fscreens: <FilterOutlined />, fsql: <CodeOutlined />,
+  portfolio: <WalletOutlined />, alerts: <AlertOutlined />, watchlists: <EyeOutlined />,
+  dq: <DatabaseOutlined />, fhealth: <SafetyOutlined />,
+}
+const NAV0: Record<string, { label: string; icon: ReactNode }> = {
   home: { label: 'Home', icon: <CompassOutlined /> },
   chain: { label: 'Option Chain', icon: <TableOutlined /> },
   oi: { label: 'OI & Gamma', icon: <BarChartOutlined /> },
@@ -34,6 +59,10 @@ const NAV: Record<TabKey, { label: string; icon: ReactNode }> = {
   calendar: { label: 'Calendar', icon: <CalendarOutlined /> },
   payoff: { label: 'Payoff', icon: <SlidersOutlined /> },
 }
+
+const NAV = new Proxy(NAV0, {
+  get: (t, k: string) => t[k] ?? { label: TAB_LABELS[k] ?? k, icon: ICONS[k] ?? <AppstoreOutlined /> },
+})
 
 const RAIL_KEY = 'oipulse:rail'
 
@@ -63,31 +92,32 @@ export function Sidebar() {
           OI <span style={{ color: 'var(--gold)' }}>Pulse</span>
         </span>
       </div>
-      {TAB_ORDER.map((k, i) => {
-        const item = (
-          <div
-            key={k}
-            role="button"
-            tabIndex={0}
-            className={`side-item${tab === k ? ' active' : ''}`}
-            onClick={() => setTab(k)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') setTab(k)
-            }}
-          >
-            {NAV[k].icon}
-            <span className="side-label">{NAV[k].label}</span>
-            {i < 9 && <span className="side-key mono">{i + 1}</span>}
-          </div>
-        )
-        return open ? (
-          item
-        ) : (
-          <Tooltip key={k} title={NAV[k].label} placement="right">
-            {item}
-          </Tooltip>
-        )
-      })}
+      {NAV_GROUPS.map((g) => (
+        <div key={g.title}>
+          {open && <div className="side-group mono" style={{ fontSize: 10, opacity: 0.5, padding: '10px 14px 2px', textTransform: 'uppercase' }}>{g.title}</div>}
+          {!open && <div style={{ height: 1, background: 'var(--border, #ffffff14)', margin: '6px 10px' }} />}
+          {g.tabs.map((k) => {
+            const i = TAB_ORDER.indexOf(k)
+            const item = (
+              <div
+                key={k}
+                role="button"
+                tabIndex={0}
+                className={`side-item${tab === k ? ' active' : ''}`}
+                onClick={() => setTab(k)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') setTab(k)
+                }}
+              >
+                {NAV[k].icon}
+                <span className="side-label">{NAV[k].label}</span>
+                {i < 9 && <span className="side-key mono">{i + 1}</span>}
+              </div>
+            )
+            return open ? item : <Tooltip key={k} title={NAV[k].label} placement="right">{item}</Tooltip>
+          })}
+        </div>
+      ))}
       <div className="rail-spacer" />
       <div className="side-item rail-toggle" role="button" tabIndex={0} onClick={toggle} onKeyDown={(e) => e.key === 'Enter' && toggle()}>
         {open ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
