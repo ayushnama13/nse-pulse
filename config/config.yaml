@@ -54,10 +54,12 @@ scrapers:
     - bhavcopy
     - corp_actions
     - index_eod
-  # Standard tier (enable after MVP stable for 5 days):
-  # - option_chain
-  # - fii_dii
-  # - bulk_deals
+    # Verified against live NSE (see scripts/seed_*.py for the archive-based backfills):
+    - option_chain
+    - fii_dii
+    - bulk_deals
+    - news
+    - market_movers
 
 # ---- Indices to track (EOD) ----
 indices:
