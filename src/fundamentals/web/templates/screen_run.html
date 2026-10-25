@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ spec.title }} · screen{% endblock %}
+{% block content %}
+
+<div class="flex items-baseline justify-between mb-4">
+  <div>
+    <h1 class="text-2xl font-bold">{{ spec.title }}</h1>
+    <p class="text-sm text-slate-600">{{ spec.desc }}</p>
+  </div>
+  <a href="/screens" class="text-sm text-blue-600 hover:underline">← All screens</a>
+</div>
+
+{% if spec.params %}
+<form method="get" class="bg-white border border-slate-200 rounded-lg p-4 mb-5 flex flex-wrap items-end gap-3">
+  {% for p in spec.params %}
+  <div>
+    <label class="block text-xs uppercase tracking-wide text-slate-500 mb-1">{{ p.label }}</label>
+    <input type="{{ p.type }}" name="{{ p.name }}" step="{{ p.step }}"
+           value="{{ args[p.name] if p.name in args else p.default }}"
+           class="px-3 py-1.5 text-sm rounded border border-slate-300 w-44">
+  </div>
+  {% endfor %}
+  <button class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded">Run</button>
+  <span class="text-sm text-slate-500 self-center">{{ n }} match{% if n != 1 %}es{% endif %}</span>
+</form>
+{% else %}
+<div class="text-sm text-slate-500 mb-3">{{ n }} match{% if n != 1 %}es{% endif %}</div>
+{% endif %}
+
+{% if rows %}
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+        <tr>
+          {% for col in columns %}<th class="py-2 px-3 {% if col not in ['symbol','name','sector','flag_details','as_of'] %}num{% else %}text-left{% endif %}">{{ col }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+      <tr>
+        {% for col in columns %}
+          {% set v = r[col] %}
+          <td class="py-1.5 px-3 {% if col not in ['symbol','name','sector','flag_details','as_of'] %}num{% endif %}">
+            {% if col == "symbol" %}
+              <a href="/company/{{ v }}" class="text-blue-600 hover:underline font-medium">{{ v }}</a>
+            {% elif col == "flag_details" %}
+              <span class="text-xs font-mono text-slate-500">{{ v | tojson if v else "" }}</span>
+            {% elif v is none %}
+              —
+            {% elif v.__class__.__name__ in ("Decimal","float","int") %}
+              {{ v | num }}
+            {% else %}
+              {{ v }}
+            {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white border border-slate-200 rounded-lg p-6 text-center text-slate-500">
+  No matches with these thresholds.
+</div>
+{% endif %}
+{% endblock %}

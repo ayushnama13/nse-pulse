@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Screens · stock_db{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Screens</h1>
+<p class="text-sm text-slate-600 mb-6">Pre-built filters. Click a card to run it with default thresholds, then tweak.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for s in screens %}
+  <a href="/screens/{{ s.key }}"
+     class="block bg-white border border-slate-200 rounded-lg p-5 hover:border-blue-500 hover:shadow transition">
+    <div class="text-xs uppercase text-slate-400 tracking-wide mb-1">{{ s.key }}</div>
+    <div class="text-lg font-semibold mb-1">{{ s.title }}</div>
+    <div class="text-sm text-slate-600 mb-3">{{ s.desc }}</div>
+    <div class="text-xs text-slate-500">
+      {% if s.params %}
+        Params:
+        {% for p in s.params %}<span class="font-mono">{{ p.name }}={{ p.default }}</span>{% if not loop.last %}, {% endif %}{% endfor %}
+      {% else %}
+        No parameters.
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

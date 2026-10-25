@@ -1,0 +1,50 @@
+# NSE Trading Holidays — 2026
+# Source of truth: https://www.nseindia.com/resources/exchange-communication-holidays
+#
+# This file can be regenerated from the live NSE API any time:
+#     python -m src.utils.holiday_fetcher --year 2026 --write
+#
+# The calendar helper treats Saturday/Sunday as non-trading days automatically;
+# only weekday holidays need to be listed here.
+#
+# IMPORTANT: The 2026 entries below are computed from typical Indian festival
+# dates and the standard NSE pattern. They are a starting point — re-run
+# `python -m src.utils.holiday_fetcher --year 2026 --write` against live NSE
+# once the official circular is published, and verify each date before relying
+# on it for production runs.
+#
+# Diwali Muhurat session is a special partial trading session, not a holiday.
+
+year: 2026
+
+trading_holidays:
+  - date: 2026-01-26
+    name: Republic Day
+  - date: 2026-02-17
+    name: Mahashivratri
+  - date: 2026-03-04
+    name: Holi
+  - date: 2026-03-21
+    name: Eid-ul-Fitr (Ramzan Id)
+  - date: 2026-04-03
+    name: Good Friday
+  - date: 2026-04-14
+    name: Dr. Ambedkar Jayanti
+  - date: 2026-05-01
+    name: Maharashtra Day
+  - date: 2026-05-27
+    name: Eid-ul-Adha (Bakri Id)
+  - date: 2026-06-25
+    name: Muharram
+  - date: 2026-09-04
+    name: Ganesh Chaturthi
+  - date: 2026-10-02
+    name: Gandhi Jayanti
+  - date: 2026-10-21
+    name: Diwali Laxmi Pujan
+  - date: 2026-10-22
+    name: Diwali Balipratipada
+  - date: 2026-11-24
+    name: Guru Nanak Jayanti
+  - date: 2026-12-25
+    name: Christmas

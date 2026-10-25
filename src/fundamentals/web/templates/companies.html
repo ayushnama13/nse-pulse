@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Companies · stock_db{% endblock %}
+{% block content %}
+<div class="flex items-baseline justify-between mb-4">
+  <h1 class="text-2xl font-bold">Companies</h1>
+  <span class="text-sm text-slate-500">{{ total | num(0) }} match{% if total != 1 %}es{% endif %}</span>
+</div>
+
+<form method="get" class="flex flex-wrap gap-2 mb-4 bg-white border border-slate-200 rounded-lg p-3">
+  <input type="text" name="q" value="{{ q }}" placeholder="Symbol or name…"
+         class="px-3 py-1.5 text-sm rounded border border-slate-300 w-72">
+  <select name="sector" class="px-3 py-1.5 text-sm rounded border border-slate-300">
+    <option value="">All sectors</option>
+    {% for s in sectors %}
+      <option value="{{ s }}" {% if s==sector %}selected{% endif %}>{{ s }}</option>
+    {% endfor %}
+  </select>
+  <button class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 rounded">Filter</button>
+  {% if q or sector %}
+  <a href="/companies" class="text-sm text-slate-500 self-center">Clear</a>
+  {% endif %}
+</form>
+
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+        <tr>
+          <th class="py-2 px-3 text-left">Symbol</th>
+          <th class="py-2 px-3 text-left">Name</th>
+          <th class="py-2 px-3 text-left">Sector</th>
+          <th class="py-2 px-3 text-left">Industry</th>
+          <th class="py-2 px-3 num">Market cap</th>
+          <th class="py-2 px-3 num">PE TTM</th>
+          <th class="py-2 px-3 num">ROE %</th>
+          <th class="py-2 px-3 num">Score</th>
+          <th class="py-2 px-3 text-left">ISIN</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="py-1.5 px-3 font-medium">
+          <a href="/company/{{ r.symbol }}" class="text-blue-600 hover:underline">{{ r.symbol }}</a>
+        </td>
+        <td class="py-1.5 px-3">{{ r.name }}</td>
+        <td class="py-1.5 px-3 text-slate-600">
+          {% if r.sector %}<a class="hover:text-blue-600" href="/sector/{{ r.sector | urlencode }}">{{ r.sector }}</a>{% else %}—{% endif %}
+        </td>
+        <td class="py-1.5 px-3 text-slate-500">{{ r.industry or "—" }}</td>
+        <td class="py-1.5 px-3 num">{{ r.market_cap_cr | cr }}</td>
+        <td class="py-1.5 px-3 num">{{ r.pe_ttm | num }}</td>
+        <td class="py-1.5 px-3 num">{{ r.roe | num }}</td>
+        <td class="py-1.5 px-3 num">
+          {% if r.composite_score is not none %}
+            <span class="pill {% if r.composite_score|float > 60 %}pill-ok{% elif r.composite_score|float > 40 %}pill-warn{% else %}pill-err{% endif %}" title="universe rank #{{ r.universe_rank }}">
+              {{ r.composite_score | num(0) }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="py-1.5 px-3 text-slate-400 text-xs">{{ r.isin or "—" }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pages > 1 %}
+<div class="flex justify-center gap-1 mt-4">
+  {% set qs = "q=" ~ q|urlencode ~ "&sector=" ~ sector|urlencode %}
+  {% if page > 1 %}
+    <a href="?{{ qs }}&page={{ page - 1 }}" class="px-3 py-1 border border-slate-300 rounded bg-white text-sm">Prev</a>
+  {% endif %}
+  <span class="px-3 py-1 text-sm text-slate-600">Page {{ page }} / {{ pages }}</span>
+  {% if page < pages %}
+    <a href="?{{ qs }}&page={{ page + 1 }}" class="px-3 py-1 border border-slate-300 rounded bg-white text-sm">Next</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

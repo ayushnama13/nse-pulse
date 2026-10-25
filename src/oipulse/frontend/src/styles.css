@@ -1,0 +1,781 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   OBSIDIAN GLASS — global shell stylesheet.
+   Near-black graphite canvas · translucent glass slabs · electric-cyan light.
+   Ant handles component theming; this covers tokens chart code reads via CSS
+   vars, the glass material, the shell layout (rail + header), and primitives.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #05070b;
+  --bg-1: #0a0d13;
+  --bg-2: #0f131b;
+  --bg-3: #161b26;
+  --line: #1c2330;
+  --line-2: #293245;
+  --fg: #eaeef6;
+  --fg-2: #c4cbda;
+  --fg-3: #7e89a0;
+  --fg-4: #4f586d;
+  --gold: #22d3ee;
+  --gold-soft: #7debff;
+  --gold-deep: #0ea5c4;
+  --gold-tint: rgba(34, 211, 238, 0.1);
+  --bull: #3ecf8e;
+  --bull-tint: rgba(62, 207, 142, 0.12);
+  --bear: #ff5470;
+  --bear-tint: rgba(255, 84, 112, 0.12);
+  --ce: #5b9bff;
+  --ce-tint: rgba(91, 155, 255, 0.14);
+  --pe: #ff7e67;
+  --pe-tint: rgba(255, 126, 103, 0.14);
+  --violet: #a78bfa;
+  --amber: #fbbf24;
+  --info: #2dd4bf;
+
+  /* Glass material */
+  --glass-panel: rgba(15, 19, 27, 0.72);
+  --glass-raised: rgba(22, 27, 38, 0.82);
+  --glass-overlay: rgba(13, 17, 25, 0.92);
+  --glass-edge: rgba(255, 255, 255, 0.07);
+  --glass-catch: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* Elevation — deep soft shadows + top-edge light catch */
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.35), var(--glass-catch);
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.45), var(--glass-catch);
+  --shadow-3: 0 20px 56px rgba(0, 0, 0, 0.6), var(--glass-catch);
+  --glow-accent: 0 0 18px rgba(34, 211, 238, 0.3);
+
+  /* Motion — one curve to rule them all */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 150ms;
+  --t-med: 220ms;
+
+  /* Shell geometry */
+  --rail-w: 64px;
+  --rail-w-open: 198px;
+}
+
+/* ── PORCELAIN GLASS — the light twin ───────────────────────────────────── */
+[data-theme='light'] {
+  --bg: #eef1f7;
+  --bg-1: #f6f8fc;
+  --bg-2: #ffffff;
+  --bg-3: #e7ebf3;
+  --line: #dde2ec;
+  --line-2: #c9d0de;
+  --fg: #101622;
+  --fg-2: #2c3548;
+  --fg-3: #5d6880;
+  --fg-4: #8d97ac;
+  --gold: #0891b2;
+  --gold-soft: #22d3ee;
+  --gold-deep: #0e7490;
+  --gold-tint: rgba(8, 145, 178, 0.1);
+  --bull: #0e9f6e;
+  --bull-tint: rgba(14, 159, 110, 0.12);
+  --bear: #e11d48;
+  --bear-tint: rgba(225, 29, 72, 0.1);
+  --ce: #2563eb;
+  --ce-tint: rgba(37, 99, 235, 0.1);
+  --pe: #ea580c;
+  --pe-tint: rgba(234, 88, 12, 0.1);
+  --violet: #7c3aed;
+  --amber: #d97706;
+  --info: #0d9488;
+
+  --glass-panel: rgba(255, 255, 255, 0.78);
+  --glass-raised: rgba(255, 255, 255, 0.92);
+  --glass-overlay: rgba(255, 255, 255, 0.96);
+  --glass-edge: rgba(16, 22, 34, 0.09);
+  --glass-catch: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  --shadow-1: 0 2px 8px rgba(31, 41, 60, 0.07), var(--glass-catch);
+  --shadow-2: 0 10px 28px rgba(31, 41, 60, 0.1), var(--glass-catch);
+  --shadow-3: 0 20px 48px rgba(31, 41, 60, 0.16), var(--glass-catch);
+  --glow-accent: 0 0 16px rgba(8, 145, 178, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+/* The canvas: graphite void with a faint radial light from top-center, plus
+   a 1.5% film grain so nothing reads as a flat rectangle. */
+body {
+  background:
+    radial-gradient(1100px 520px at 50% -8%, rgba(34, 211, 238, 0.07), transparent 60%),
+    radial-gradient(900px 700px at 85% 110%, rgba(167, 139, 250, 0.05), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme='light'] body {
+  background:
+    radial-gradient(1100px 520px at 50% -8%, rgba(8, 145, 178, 0.06), transparent 60%),
+    radial-gradient(900px 700px at 85% 110%, rgba(124, 58, 237, 0.04), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--gold);
+  color: #04141a;
+}
+
+/* Slim glass scrollbars */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(126, 137, 160, 0.25);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.45);
+  background-clip: content-box;
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(93, 104, 128, 0.3);
+  background-clip: content-box;
+}
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 145, 178, 0.5);
+  background-clip: content-box;
+}
+
+/* Numbers are the heroes — always mono, always tabular. */
+.num,
+.mono {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus: a clean cyan ring, never the browser default. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── SHELL: icon rail + header + main ───────────────────────────────────── */
+.app-shell {
+  display: flex;
+  min-height: 100%;
+  position: relative;
+  z-index: 1;
+}
+.app-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app-main {
+  padding: 16px 20px 48px;
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
+  animation: panel-up var(--t-med) var(--ease);
+}
+@keyframes panel-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-density='compact'] .app-main {
+  padding: 10px 14px 36px;
+}
+
+/* The rail — a floating glass slab of icons. */
+.side-rail {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  width: var(--rail-w);
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  background: var(--glass-panel);
+  border-right: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow-1);
+  z-index: 60;
+  transition: width var(--t-med) var(--ease);
+  overflow: hidden;
+}
+.side-rail.open {
+  width: var(--rail-w-open);
+}
+.rail-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 14px;
+  white-space: nowrap;
+}
+.rail-brand .brand-name {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+.side-rail.open .brand-name {
+  opacity: 1;
+}
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 38px;
+  padding: 0 11px;
+  border-radius: 11px;
+  color: var(--fg-3);
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+  font-size: 13px;
+  font-weight: 500;
+  user-select: none;
+}
+.side-item .anticon {
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+.side-item:hover {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme='light'] .side-item:hover {
+  background: rgba(16, 22, 34, 0.05);
+}
+.side-item.active {
+  color: var(--gold);
+  background: var(--gold-tint);
+  border-color: rgba(34, 211, 238, 0.22);
+  box-shadow: var(--glow-accent);
+}
+.side-item .side-label {
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+.side-rail.open .side-label {
+  opacity: 1;
+}
+.side-item .side-key {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--fg-4);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+.side-rail.open .side-key {
+  opacity: 1;
+}
+.rail-spacer {
+  flex: 1;
+}
+
+/* The header — a slim etched-glass bar floating over the void. */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 54px;
+  padding: 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(5, 7, 11, 0.62);
+  border-bottom: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-catch);
+}
+[data-theme='light'] .app-header {
+  background: rgba(255, 255, 255, 0.66);
+}
+/* brand lives in the rail on desktop; surfaces in the header on mobile */
+.header-brand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 768px) {
+  .header-brand {
+    display: flex;
+  }
+}
+
+/* ── THE SIGNATURE: the living pulse ────────────────────────────────────── */
+.pulse {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.pulse-core {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bull);
+  box-shadow: 0 0 10px var(--bull);
+  animation: pulse-breathe 2.4s var(--ease) infinite;
+}
+.pulse.live .pulse-core {
+  background: var(--gold);
+  box-shadow: 0 0 12px var(--gold);
+}
+.pulse.stale .pulse-core {
+  background: var(--amber);
+  box-shadow: 0 0 10px var(--amber);
+  animation: none;
+}
+.pulse.error .pulse-core {
+  background: var(--bear);
+  box-shadow: 0 0 10px var(--bear);
+  animation: none;
+}
+.pulse-ring {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  opacity: 0;
+  pointer-events: none;
+}
+.pulse.live .pulse-ring {
+  animation: pulse-ripple 900ms var(--ease) 1;
+}
+@keyframes pulse-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.82);
+    opacity: 0.75;
+  }
+}
+@keyframes pulse-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(4.2);
+    opacity: 0;
+  }
+}
+.pulse .pulse-word.live {
+  color: var(--gold);
+}
+.pulse .pulse-word.stale {
+  color: var(--amber);
+}
+.pulse .pulse-word.error {
+  color: var(--bear);
+}
+
+/* directional text helpers (charts/tables reuse) */
+.up {
+  color: var(--bull);
+}
+.down {
+  color: var(--bear);
+}
+.muted {
+  color: var(--fg-3);
+}
+
+/* ── AG Grid — bespoke glass treatment ──────────────────────────────────── */
+.chain-grid {
+  width: 100%;
+  --ag-background-color: transparent;
+  --ag-odd-row-background-color: transparent;
+  --ag-header-background-color: rgba(255, 255, 255, 0.03);
+  --ag-border-color: rgba(255, 255, 255, 0.05);
+  --ag-row-border-color: rgba(255, 255, 255, 0.04);
+  --ag-foreground-color: var(--fg-2);
+  --ag-header-foreground-color: var(--fg-3);
+  --ag-row-hover-color: rgba(34, 211, 238, 0.05);
+  --ag-font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  --ag-wrapper-border-radius: 16px;
+}
+[data-theme='light'] .chain-grid {
+  --ag-header-background-color: rgba(16, 22, 34, 0.03);
+  --ag-border-color: rgba(16, 22, 34, 0.07);
+  --ag-row-border-color: rgba(16, 22, 34, 0.05);
+  --ag-row-hover-color: rgba(8, 145, 178, 0.05);
+}
+.chain-grid .ag-root-wrapper {
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow-1);
+}
+.chain-grid .ag-header {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.chain-grid .ag-cell.bull {
+  color: var(--bull);
+}
+.chain-grid .ag-cell.bear {
+  color: var(--bear);
+}
+.chain-grid .ag-row.atm-row {
+  background: var(--gold-tint) !important;
+  box-shadow: inset 0 0 18px rgba(34, 211, 238, 0.07);
+}
+.chain-grid .ag-row.pinned-row {
+  box-shadow: inset 3px 0 0 var(--violet);
+}
+.chain-grid .ag-cell.itm {
+  opacity: 0.45;
+}
+.chain-grid .ag-cell[col-id='strike'] {
+  cursor: pointer;
+}
+.chain-grid .ag-cell.top-oi {
+  background: var(--gold-tint);
+  font-weight: 600;
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-edge);
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  box-shadow: var(--glass-catch);
+}
+[data-theme='light'] kbd {
+  background: rgba(16, 22, 34, 0.04);
+}
+
+/* ── Glass slabs (Ant Card global) ──────────────────────────────────────── */
+.ant-card {
+  border-color: var(--glass-edge) !important;
+  box-shadow: var(--shadow-1);
+  transition:
+    box-shadow var(--t-med) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    transform var(--t-med) var(--ease);
+}
+.ant-card:hover {
+  box-shadow: var(--shadow-2);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  transform: translateY(-1px);
+}
+[data-theme='light'] .ant-card:hover {
+  border-color: rgba(16, 22, 34, 0.16) !important;
+}
+.ant-card .ant-card-head {
+  border-bottom-color: var(--glass-edge);
+  min-height: 40px;
+}
+.ant-card .ant-card-head-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fg-3);
+}
+
+/* Glass overlays: modal / popover / notification get blur + edge */
+.ant-modal .ant-modal-content,
+.ant-popover .ant-popover-inner,
+.ant-notification-notice,
+.ant-select-dropdown,
+.ant-tooltip .ant-tooltip-inner {
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow-3);
+}
+
+/* micro-label used across widgets */
+.microlabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg-4);
+}
+
+/* ── HOME command-center layout ─────────────────────────────────────────── */
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 14px;
+  align-items: start;
+}
+.home-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* verdict bar — the hero slab */
+.verdict-bar {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+  background: var(--glass-raised);
+  border: 1px solid var(--glass-edge);
+  border-radius: 18px;
+  box-shadow: var(--shadow-2);
+  padding: 14px 20px;
+  margin-bottom: 14px;
+}
+@media (max-width: 900px) {
+  .verdict-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.verdict-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  box-shadow: 0 0 10px currentColor;
+}
+.verdict-dot.flip {
+  animation: verdict-pulse 600ms var(--ease) 1;
+}
+@keyframes verdict-pulse {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.conviction {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+.conviction span {
+  width: 14px;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+}
+[data-theme='light'] .conviction span {
+  background: rgba(16, 22, 34, 0.1);
+}
+
+/* battle map */
+.bmap-row {
+  cursor: pointer;
+}
+.bmap-row:hover .bmap-bg {
+  fill: var(--gold-tint);
+}
+
+/* feed */
+.feed-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--glass-edge);
+  font-size: 12.5px;
+  animation: feed-in var(--t-med) var(--ease);
+}
+.feed-row:last-child {
+  border-bottom: none;
+}
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* number flash on tick — wired via key remount */
+.tick-flash {
+  animation: tick-glow 700ms var(--ease) 1;
+}
+@keyframes tick-glow {
+  0% {
+    text-shadow: 0 0 14px rgba(34, 211, 238, 0.85);
+  }
+  100% {
+    text-shadow: none;
+  }
+}
+
+/* ── Bespoke glass skeleton + empty states ──────────────────────────────── */
+.glass-skel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme='light'] .glass-skel {
+  background: rgba(16, 22, 34, 0.05);
+}
+.glass-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.07), transparent);
+  animation: skel-sweep 1.6s var(--ease) infinite;
+}
+@keyframes skel-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+.glass-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--fg-4);
+  text-align: center;
+}
+.glass-empty .ghost-mark {
+  opacity: 0.22;
+  filter: grayscale(0.4);
+}
+.glass-empty .empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+.glass-empty .empty-hint {
+  font-size: 12px;
+  max-width: 320px;
+}
+
+/* center loader used as Suspense fallback */
+.glass-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 0;
+}
+.glass-loader .pulse-core {
+  width: 12px;
+  height: 12px;
+  background: var(--gold);
+  box-shadow: 0 0 14px var(--gold);
+}
+
+/* ── Mobile: rail becomes a floating bottom dock ────────────────────────── */
+@media (max-width: 768px) {
+  .side-rail {
+    position: fixed;
+    top: auto;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    height: 58px;
+    width: auto !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 8px;
+    border-radius: 18px;
+    border: 1px solid var(--glass-edge);
+    box-shadow: var(--shadow-3);
+    overflow-x: auto;
+  }
+  .rail-brand,
+  .rail-toggle,
+  .side-label,
+  .side-key {
+    display: none !important;
+  }
+  .side-item {
+    flex: 0 0 auto;
+    padding: 0 12px;
+  }
+  .app-main {
+    padding-bottom: 90px;
+  }
+}
+
+/* stale honesty: desaturate the workspace when data is stale */
+.app-stale .app-main {
+  filter: saturate(0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

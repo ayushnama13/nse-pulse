@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Sources · stock_db{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Sources & Health</h1>
+
+<h2 class="font-semibold text-slate-700 mb-2">Latest run per source</h2>
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden mb-6">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr><th class="py-2 px-3 text-left">Source</th><th>Status</th><th>Started</th><th>Finished</th><th class="num">Rows</th><th class="text-left">Error</th></tr>
+    </thead>
+    <tbody>
+    {% for r in last_runs %}
+    <tr>
+      <td class="py-1.5 px-3 font-medium">{{ r.source }}</td>
+      <td><span class="pill pill-{{ 'ok' if r.status=='success' else ('unhealthy' if r.status=='unhealthy' else ('err' if r.status=='failed' else 'warn')) }}">{{ r.status }}</span></td>
+      <td class="text-slate-600">{{ r.started_at.strftime('%Y-%m-%d %H:%M:%S') if r.started_at else "—" }}</td>
+      <td class="text-slate-600">{{ r.finished_at.strftime('%Y-%m-%d %H:%M:%S') if r.finished_at else "—" }}</td>
+      <td class="num">{{ r.rows_written | num(0) }}</td>
+      <td class="text-xs text-red-600">{{ (r.error_message or "")[:160] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="font-semibold text-slate-700 mb-2">Recent fetch_log (100)</h2>
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden mb-6">
+  <div class="scroll-x" style="max-height:480px; overflow-y:auto">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100 sticky top-0">
+      <tr><th class="py-2 px-3 text-left">ID</th><th class="text-left">Source</th><th class="text-left">Symbol</th><th>Status</th><th>Started</th><th class="num">Rows</th><th class="text-left">Error</th></tr>
+    </thead>
+    <tbody>
+    {% for r in recent %}
+    <tr>
+      <td class="py-1 px-3 text-slate-400 text-xs">{{ r.id }}</td>
+      <td>{{ r.source }}</td>
+      <td>{% if r.symbol %}<a href="/company/{{ r.symbol }}" class="text-blue-600 hover:underline">{{ r.symbol }}</a>{% else %}—{% endif %}</td>
+      <td><span class="pill pill-{{ 'ok' if r.status=='success' else ('unhealthy' if r.status=='unhealthy' else ('err' if r.status=='failed' else 'warn')) }}">{{ r.status }}</span></td>
+      <td class="text-xs text-slate-500">{{ r.started_at.strftime('%Y-%m-%d %H:%M:%S') if r.started_at else "—" }}</td>
+      <td class="num">{{ r.rows_written | num(0) }}</td>
+      <td class="text-xs text-red-600">{{ (r.error_message or "")[:140] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<h2 class="font-semibold text-slate-700 mb-2">DQ issues — by type</h2>
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden mb-6">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr><th class="py-2 px-3 text-left">Issue</th><th class="text-left">Severity</th><th class="num">Count</th></tr>
+    </thead>
+    <tbody>
+    {% if dq %}
+      {% for r in dq %}
+      <tr>
+        <td class="py-1.5 px-3">{{ r.issue_type }}</td>
+        <td><span class="pill pill-{{ 'err' if r.severity=='high' else ('warn' if r.severity=='medium' else 'info') }}">{{ r.severity }}</span></td>
+        <td class="num">{{ r.n }}</td>
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td colspan="3" class="text-center text-slate-500 py-3">No DQ issues found.</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% if dq_recent %}
+<h2 class="font-semibold text-slate-700 mb-2">DQ issues — recent (50)</h2>
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr><th class="py-2 px-3 text-left">Symbol</th><th class="text-left">Issue</th><th class="text-left">Severity</th><th class="text-left">Description</th><th>Detected</th></tr>
+    </thead>
+    <tbody>
+    {% for r in dq_recent %}
+    <tr>
+      <td class="py-1.5 px-3"><a href="/company/{{ r.symbol }}" class="text-blue-600 hover:underline">{{ r.symbol }}</a></td>
+      <td>{{ r.issue_type }}</td>
+      <td><span class="pill pill-{{ 'err' if r.severity=='high' else ('warn' if r.severity=='medium' else 'info') }}">{{ r.severity }}</span></td>
+      <td class="text-slate-600">{{ r.description }}</td>
+      <td class="text-xs text-slate-500">{{ r.detected_at.strftime('%Y-%m-%d %H:%M') if r.detected_at else "—" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

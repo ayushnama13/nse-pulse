@@ -1,0 +1,106 @@
+# NSE Scraper Pipeline - Main Configuration
+# All runtime parameters live here. Code reads this file at startup.
+
+# ---- Storage ----
+storage:
+  db_path: ./data/nse.db          # SQLite file location (relative to project root)
+  timezone: Asia/Kolkata          # All timestamps stored in IST
+
+# ---- HTTP / Session ----
+# NSE uses Akamai bot manager — it inspects the FULL header bundle and rejects
+# anything that doesn't match a real Chrome navigation/XHR profile. Two distinct
+# bundles are sent: navigation for HTML pages, XHR for JSON APIs. See src/session.py.
+session:
+  homepage_url: https://www.nseindia.com/
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+  accept_language: "en-US,en;q=0.9"
+  referer: https://www.nseindia.com/
+  request_timeout_seconds: 15
+  sec_ch_ua: '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"'
+  sec_ch_ua_platform: '"Linux"'  # change to "Windows" / "macOS" if you prefer
+
+# ---- Rate Limiting ----
+rate_limit:
+  requests_per_minute: 30
+  jitter_min_seconds: 1
+  jitter_max_seconds: 3
+
+# ---- Retry Policy ----
+retry:
+  max_retries: 3
+  retry_delays_seconds: [60, 120, 300]
+  retry_on_status: [429, 500, 502, 503, 504]
+  retry_on_exceptions: [ConnectionError, Timeout]
+  do_not_retry_on_status: [400, 401, 403, 404]
+  refresh_session_on_status: [401, 403]
+
+# ---- Logging ----
+logging:
+  level: INFO                     # DEBUG | INFO | WARNING | ERROR
+  log_dir: ./logs
+  log_file_pattern: "{date}.log"  # {date} is replaced with YYYY-MM-DD
+  console_summary_only: true
+
+# ---- Validation Bounds ----
+validation:
+  bhavcopy_min_rows: 1500
+  bhavcopy_max_rows: 3500            # UDiFF includes more series; tune as needed
+  price_min: 0.01                 # Below this is treated as invalid
+  max_future_date_drift_days: 0   # Reject any date beyond today + N days
+
+# ---- Scrapers (which to run) ----
+scrapers:
+  enabled:
+    - bhavcopy
+    - corp_actions
+    - index_eod
+  # Standard tier (enable after MVP stable for 5 days):
+  # - option_chain
+  # - fii_dii
+  # - bulk_deals
+
+# ---- Indices to track (EOD) ----
+indices:
+  - "NIFTY 50"
+  - "NIFTY NEXT 50"
+  - "NIFTY 500"
+  - "NIFTY BANK"
+  - "NIFTY MIDCAP 100"
+
+# ---- Symbols for corporate actions tracking ----
+# Empty list = pull for all symbols in latest bhavcopy
+corp_actions_symbols: []
+
+# ---- Option chain watchlist (Standard tier) ----
+option_chain_symbols:
+  - RELIANCE
+  - HDFCBANK
+  - INFY
+  - TCS
+  - NIFTY
+  - BANKNIFTY
+
+# ---- Preprocessing ----
+preprocessing:
+  risk_free_rate: 0.07            # Used in Black-Scholes Greeks (annualized)
+  recompute_lookback_days: 250    # Trailing window recomputed each EOD pull
+
+# ---- Backfill ----
+backfill:
+  pause_between_days_seconds: 30
+
+# ---- Raw payload archival + schema drift ----
+archival:
+  retention_days: 30
+  archive_root: ./data/raw
+
+# ---- Alerts ----
+alerts:
+  enabled: false
+  channel: telegram               # telegram | email
+  telegram:
+    bot_token: ""                 # Set via env var NSE_TELEGRAM_BOT_TOKEN to keep out of file
+    chat_id: ""
+  daily_summary: true
+  alert_on_failure: true
+  alert_on_row_count_anomaly: true

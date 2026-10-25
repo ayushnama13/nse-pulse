@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Sectors · stock_db{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold tracking-tight mb-1">Sectors</h1>
+<p class="text-sm text-slate-500 mb-5">
+  Aggregate stats per sector. Click a row to drill into ranked peers.
+  Averages exclude companies missing the input.
+</p>
+
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+<table class="min-w-full text-sm table-zebra">
+  <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+    <tr>
+      <th class="py-2 px-3 text-left">Sector</th>
+      <th class="num">N</th>
+      <th class="num">Total mcap</th>
+      <th class="num">Avg PE</th>
+      <th class="num">Avg ROE</th>
+      <th class="num">Avg ROCE</th>
+      <th class="num">Avg score</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+  <tr class="cursor-pointer" onclick="window.location='/sector/{{ r.sector | urlencode }}'">
+    <td class="py-1.5 px-3 font-medium">
+      <a class="text-blue-600 hover:underline" href="/sector/{{ r.sector | urlencode }}">{{ r.sector }}</a>
+    </td>
+    <td class="num">{{ r.n }}</td>
+    <td class="num">{{ r.total_mcap_cr | cr }}</td>
+    <td class="num">{{ r.avg_pe | num }}</td>
+    <td class="num">{{ r.avg_roe | num }}</td>
+    <td class="num">{{ r.avg_roce | num }}</td>
+    <td class="num">
+      {% if r.avg_score is not none %}
+        <span class="pill {% if r.avg_score|float > 60 %}pill-ok{% elif r.avg_score|float > 40 %}pill-warn{% else %}pill-err{% endif %}">
+          {{ r.avg_score | num(1) }}
+        </span>
+      {% else %}—{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

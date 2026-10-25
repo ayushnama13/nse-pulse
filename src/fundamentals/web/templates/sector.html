@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ sector }} · sector{% endblock %}
+{% block content %}
+
+<div class="flex flex-wrap items-baseline gap-3 mb-2">
+  <a href="/sectors" class="text-sm text-slate-500 hover:text-slate-800">← Sectors</a>
+</div>
+<h1 class="text-2xl font-bold tracking-tight mb-1">{{ sector }}</h1>
+<p class="text-sm text-slate-500 mb-5">
+  {{ stats.n }} companies ({{ stats.n_scored }} scored).
+  Combined market cap: {{ stats.total_mcap | cr }}.
+  Ranked by composite score; NULL scores at the bottom.
+</p>
+
+<div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+<table class="min-w-full text-sm table-zebra">
+  <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+    <tr>
+      <th class="py-2 px-2 text-left">Rank</th>
+      <th class="py-2 px-2 text-left">Symbol</th>
+      <th class="text-left">Name</th>
+      <th class="num">Mcap</th>
+      <th class="num">PE</th>
+      <th class="num">ROE</th>
+      <th class="num">ROCE</th>
+      <th class="num">D/E</th>
+      <th class="num">Rev 5y</th>
+      <th class="num">Q</th>
+      <th class="num">V</th>
+      <th class="num">G</th>
+      <th class="num">M</th>
+      <th class="num">R</th>
+      <th class="num">Composite</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td class="py-1 px-2 text-slate-500">{{ r.sector_rank or "—" }}</td>
+    <td class="py-1 px-2 font-mono"><a class="text-blue-600 hover:underline" href="/company/{{ r.symbol }}">{{ r.symbol }}</a></td>
+    <td class="text-slate-700">{{ r.name }}</td>
+    <td class="num">{{ r.market_cap_cr | cr }}</td>
+    <td class="num">{{ r.pe_ttm | num }}</td>
+    <td class="num">{{ r.roe | num }}</td>
+    <td class="num">{{ r.roce | num }}</td>
+    <td class="num">{{ r.debt_to_equity | num }}</td>
+    <td class="num">{{ r.revenue_cagr_5y | num }}</td>
+    <td class="num">{{ r.quality_score | num(0) }}</td>
+    <td class="num">{{ r.value_score | num(0) }}</td>
+    <td class="num">{{ r.growth_score | num(0) }}</td>
+    <td class="num">{{ r.momentum_score | num(0) }}</td>
+    <td class="num">{{ r.risk_score | num(0) }}</td>
+    <td class="num font-semibold">
+      {% if r.composite_score is not none %}
+        <span class="pill {% if r.composite_score|float > 60 %}pill-ok{% elif r.composite_score|float > 40 %}pill-warn{% else %}pill-err{% endif %}">
+          {{ r.composite_score | num(1) }}
+        </span>
+      {% else %}—{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<p class="text-xs text-slate-400 mt-3">
+  Columns Q/V/G/M/R = Quality, Value, Growth, Momentum, Risk sub-scores (0–100).
+  Composite = weighted blend, ranked by percentile within the universe.
+</p>
+{% endblock %}

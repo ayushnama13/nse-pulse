@@ -1,0 +1,68 @@
+# NSE Internal JSON Endpoints
+# These are the same endpoints nseindia.com calls under the hood.
+# All require a valid session cookie obtained by first hitting the homepage.
+#
+# WARNING: NSE changes these without notice. If any returns 403/404 or unexpected
+# data, stop and inspect — do not silently fall back to a guessed URL.
+#
+# Placeholders use {symbol}, {index}, {date} format. Substitute with urlencoded values.
+
+base:
+  homepage: https://www.nseindia.com
+  api_root: https://www.nseindia.com/api
+  archives_root: https://archives.nseindia.com
+
+# ---- MVP endpoints ----
+mvp:
+  market_status: https://www.nseindia.com/api/marketStatus
+
+  # Official trading holiday calendar (consumed by src/utils/holiday_fetcher.py)
+  holiday_master: https://www.nseindia.com/api/holiday-master?type=trading
+
+  all_indices: https://www.nseindia.com/api/allIndices
+
+  # Index constituents + index OHLC (replace {index} with e.g. "NIFTY%2050")
+  equity_stock_indices: https://www.nseindia.com/api/equity-stockIndices?index={index}
+
+  # Single-symbol equity quote (replace {symbol})
+  quote_equity: https://www.nseindia.com/api/quote-equity?symbol={symbol}
+
+  # Corporate actions for a symbol
+  corp_actions: https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol={symbol}
+
+  # EOD bhavcopy ZIP (UDiFF unified format — NSE retired the legacy URL in 2024+).
+  # {YYYYMMDD} = e.g. 20260508
+  bhavcopy_archive: https://archives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip
+
+  # Legacy URL (kept for reference; NSE returns 404 as of 2025+):
+  # bhavcopy_legacy: https://archives.nseindia.com/content/historical/EQUITIES/{YYYY}/{MMM}/cm{DDMMMYYYY}bhav.csv.zip
+
+  # Delivery position data (separate file with deliverable qty + delivery %).
+  # Verify column names on first call.
+  delivery_data: https://archives.nseindia.com/products/content/sec_bhavdata_full_{DDMMYYYY}.csv
+
+# ---- Standard tier endpoints ----
+standard:
+  option_chain_equities: https://www.nseindia.com/api/option-chain-equities?symbol={symbol}
+  option_chain_indices: https://www.nseindia.com/api/option-chain-indices?symbol={symbol}
+
+  # FII/DII activity (cash market). Verify response shape on first call.
+  fii_dii_activity: https://www.nseindia.com/api/fiidiiTradeReact
+
+  # Bulk and block deals
+  bulk_deals: https://www.nseindia.com/api/historical/bulk-deals?from={DD-MM-YYYY}&to={DD-MM-YYYY}
+  block_deals: https://www.nseindia.com/api/block-deal
+
+  # Shareholding pattern (quarterly) — verify exact endpoint at integration time
+  # shareholding_pattern: TBD
+
+# ---- Full tier endpoints ----
+full:
+  # Pre-open snapshot (key=NIFTY | FO | ALL)
+  pre_open: https://www.nseindia.com/api/market-data-pre-open?key={key}
+
+  # Live OI spurts
+  oi_spurts: https://www.nseindia.com/api/live-analysis-oi-spurts-underlyings
+
+  # F&O participant-wise OI — verify response shape
+  fo_participant_oi: https://www.nseindia.com/api/fo-participant-oi

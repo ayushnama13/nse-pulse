@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}SQL · stock_db{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Custom SQL</h1>
+<p class="text-sm text-slate-600 mb-4">Read-only. <code>SELECT</code> and <code>WITH</code> only — anything else is rejected.</p>
+
+<form method="post" class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <textarea name="sql" rows="10" placeholder="SELECT … FROM …"
+            class="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded resize-y">{{ sql }}</textarea>
+  <div class="flex justify-between items-center mt-3">
+    <span class="text-xs text-slate-500">Tip: use <code>DISTINCT ON (symbol)</code> for the latest row per stock.</span>
+    <button class="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded">Run</button>
+  </div>
+</form>
+
+{% if error %}
+<div class="bg-red-50 border border-red-300 text-red-800 rounded-lg p-3 text-sm font-mono mb-5">{{ error }}</div>
+{% endif %}
+
+{% if rows is not none %}
+  {% if rows %}
+  <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+    <div class="scroll-x">
+      <table class="min-w-full text-sm table-zebra">
+        <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+          <tr>
+            {% for col in columns %}<th class="py-2 px-3 text-left">{{ col }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+        <tr>
+          {% for col in columns %}
+            {% set v = r[col] %}
+            <td class="py-1.5 px-3">
+              {% if col == "symbol" and v %}
+                <a href="/company/{{ v }}" class="text-blue-600 hover:underline">{{ v }}</a>
+              {% elif v is none %}—{% else %}{{ v }}{% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="text-xs text-slate-500 mt-2">{{ rows|length }} row{% if rows|length != 1 %}s{% endif %}</div>
+  {% else %}
+  <div class="bg-white border border-slate-200 rounded-lg p-6 text-center text-slate-500">Query ran. 0 rows.</div>
+  {% endif %}
+{% endif %}
+
+{% if samples %}
+<h2 class="text-sm font-semibold text-slate-700 mt-6 mb-2">Sample queries</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+  {% for title, body in samples %}
+  <form method="post">
+    <input type="hidden" name="sql" value="{{ body }}">
+    <button type="submit" class="block w-full text-left bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-500 hover:shadow transition">
+      <div class="font-medium mb-1">{{ title }}</div>
+      <pre class="text-xs text-slate-600 whitespace-pre-wrap">{{ body }}</pre>
+    </button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+# NSE Scraper Pipeline - Python dependencies
+# Python >= 3.10 required.
+
+# ---- HTTP ----
+# curl_cffi uses libcurl-impersonate to mimic Chrome's TLS + HTTP/2 fingerprint.
+# `requests` alone gets 403'd by NSE's Akamai bot manager (JA3 detection); curl_cffi
+# does not. API is a drop-in for `requests.Session`.
+curl_cffi>=0.7,<2.0     # works on 0.7.x and 0.15.x; same Session(impersonate=...) API
+requests==2.32.3        # still used by alerts (Telegram) and a few utilities
+Brotli>=1.0,<2.0        # br-encoded NSE responses
+
+# ---- Validation ----
+pydantic==2.9.2
+
+# ---- ORM + DB ----
+SQLAlchemy==2.0.36
+
+# ---- Logging ----
+loguru==0.7.2
+
+# ---- Config ----
+pyyaml==6.0.2
+
+# ---- Data + numerics ----
+pandas==2.2.3
+numpy==1.26.4
+pyarrow==18.0.0
+scipy==1.14.1
+
+# ---- Technical indicators ----
+# (Indicators are hand-rolled in src/preprocess/_indicators.py — small, tested,
+# avoids pandas-ta's numpy<2 pin and stale maintenance.)
+
+# ---- Web UI ----
+streamlit==1.40.0
+plotly==5.24.1
+
+# ---- Scheduling (optional; cron is fine too) ----
+APScheduler==3.10.4
+
+# ---- Date helpers ----
+python-dateutil==2.9.0.post0
+
+# ---- Columnar analytical layer (optional, recommended once data grows) ----
+duckdb>=1.1,<2.0
+
+# ---- Testing ----
+pytest==8.3.4
+freezegun==1.5.1
+
+# ---- Merged subsystems (OI Pulse live dashboard, fundamentals web app) ----
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+httpx>=0.27
+nse
+python-dotenv>=1.0
+beautifulsoup4>=4.12
+lxml>=5.0
+yfinance>=0.2

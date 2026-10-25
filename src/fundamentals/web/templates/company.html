@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% block title %}{{ company.symbol }} · {{ company.name }}{% endblock %}
+{% block content %}
+
+<div class="bg-white border border-slate-200 rounded-lg p-5 mb-5">
+  <div class="flex flex-wrap items-baseline gap-3 mb-1">
+    <h1 class="text-3xl font-bold tracking-tight">{{ company.symbol }}</h1>
+    <span class="text-lg text-slate-700">{{ company.name }}</span>
+    {% if company.sector %}<span class="pill pill-info">{{ company.sector }}</span>{% endif %}
+    {% if company.industry %}<span class="text-sm text-slate-500">{{ company.industry }}</span>{% endif %}
+  </div>
+  <div class="text-xs text-slate-500 flex flex-wrap gap-4 mt-1">
+    {% if company.isin %}<span>ISIN: <span class="font-mono">{{ company.isin }}</span></span>{% endif %}
+    {% if company.exchange %}<span>Exchange: {{ company.exchange }}</span>{% endif %}
+    {% if company.face_value %}<span>Face value: ₹{{ company.face_value | num(0) }}</span>{% endif %}
+    {% if company.listing_date %}<span>Listed: {{ company.listing_date }}</span>{% endif %}
+    {% if company.last_yf_fetch %}<span>YF refresh: {{ company.last_yf_fetch.strftime('%Y-%m-%d %H:%M') }}</span>{% endif %}
+    {% if company.last_screener_fetch %}<span>Screener refresh: {{ company.last_screener_fetch.strftime('%Y-%m-%d %H:%M') }}</span>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-5">
+  {% macro kpi(label, value) %}
+    <div class="bg-white border border-slate-200 rounded-lg p-3">
+      <div class="text-xs text-slate-500 uppercase tracking-wide">{{ label }}</div>
+      <div class="text-lg font-semibold num">{{ value }}</div>
+    </div>
+  {% endmacro %}
+  {{ kpi("Market cap", val.market_cap_cr | cr if val else "—") }}
+  {{ kpi("PE (TTM)", val.pe_ttm | num if val else "—") }}
+  {{ kpi("PB", val.pb | num if val else "—") }}
+  {{ kpi("EV/EBITDA", val.ev_ebitda | num if val else "—") }}
+  {{ kpi("Div yield %", val.dividend_yield | num if val else "—") }}
+  {{ kpi("Graham #", val.graham_number | num(0) if val else "—") }}
+  {{ kpi("MA 50", tech.ma_50 | num if tech else "—") }}
+  {{ kpi("MA 200", tech.ma_200 | num if tech else "—") }}
+  {{ kpi("Beta 1y", tech.beta_1y | num if tech else "—") }}
+  {{ kpi("Vol 1y %", tech.vol_1y | num if tech else "—") }}
+  {{ kpi("52w high", tech.week52_high | num if tech else "—") }}
+  {{ kpi("52w low", tech.week52_low | num if tech else "—") }}
+</div>
+
+{% if score %}
+<!-- Composite scores -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <div class="flex items-baseline justify-between mb-3">
+    <h2 class="font-semibold">
+      Composite score
+      {% if score.composite_score is not none %}
+        <span class="pill {% if score.composite_score|float > 60 %}pill-ok{% elif score.composite_score|float > 40 %}pill-warn{% else %}pill-err{% endif %} text-base ml-2">
+          {{ score.composite_score | num(1) }}
+        </span>
+      {% endif %}
+    </h2>
+    <span class="text-xs text-slate-500">
+      Universe rank #{{ score.universe_rank or "—" }}
+      {% if score.sector_rank %} · Sector rank #{{ score.sector_rank }}{% endif %}
+      &nbsp;·&nbsp;as of {{ score.as_of }}
+    </span>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    {% for label, val in [
+      ("Quality",  score.quality_score),
+      ("Value",    score.value_score),
+      ("Growth",   score.growth_score),
+      ("Momentum", score.momentum_score),
+      ("Risk",     score.risk_score),
+    ] %}
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+      <div class="text-xs text-slate-500 uppercase tracking-wide">{{ label }}</div>
+      <div class="text-2xl font-bold num">{{ val | num(0) if val is not none else "—" }}</div>
+      {% if val is not none %}
+      <div class="bg-slate-200 rounded h-1.5 mt-2 overflow-hidden">
+        <div class="h-1.5 {% if val|float > 60 %}bg-emerald-500{% elif val|float > 40 %}bg-amber-500{% else %}bg-rose-500{% endif %}"
+             style="width:{{ val|float }}%"></div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="text-xs text-slate-400 mt-3">
+    Sub-scores are percentile ranks within the universe (0..100; higher = better).
+    Quality = ROE/ROCE/balance sheet · Value = inverse PE/EV-EBITDA/Graham · Growth = revenue+PAT CAGR · Momentum = price returns · Risk = inverted flag count.
+  </p>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Price (last {{ price_chart.dates | length }} sessions)</h2>
+    <div id="priceChart" style="height:340px"></div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Revenue & PAT (annual, ₹ cr)</h2>
+    <div id="revChart" style="height:340px"></div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Ratio trend (ROE / ROCE / D-to-E)</h2>
+    <div id="ratioChart" style="height:300px"></div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Shareholding pattern</h2>
+    <div id="shChart" style="height:300px"></div>
+  </div>
+</div>
+
+<!-- Risk flags -->
+{% if flags %}
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-3">Risk flags <span class="text-xs text-slate-400">(as of {{ flags.as_of }})</span></h2>
+  <div class="flex flex-wrap gap-2 mb-2">
+    {% for k, label in [
+      ("high_pledge","High pledge"),
+      ("declining_revenue","Declining revenue"),
+      ("high_debt_increase","High debt growth"),
+      ("neg_fcf_consecutive","Negative FCF (2y)"),
+      ("auditor_change","Auditor change"),
+      ("qualified_audit","Qualified audit"),
+      ("high_receivables_growth","High receivables"),
+      ("inventory_buildup","Inventory buildup"),
+    ] %}
+      <span class="pill pill-{{ 'err' if flags[k] else 'ok' }}">
+        {% if flags[k] %}⚠ {% endif %}{{ label }}
+      </span>
+    {% endfor %}
+  </div>
+  {% if flag_details %}
+  <pre class="text-xs bg-slate-50 border border-slate-200 rounded p-2 overflow-x-auto">{{ flag_details | tojson(indent=2) }}</pre>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Annual P&L -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-2">Annual P&amp;L</h2>
+  <div class="scroll-x">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr>
+        <th class="py-1.5 px-3 text-left">FY</th>
+        <th class="num">Revenue</th><th class="num">EBITDA</th><th class="num">EBIT</th>
+        <th class="num">PAT</th><th class="num">EBITDA %</th><th class="num">Net %</th>
+        <th class="num">EPS basic</th><th class="num">EPS diluted</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in fin_annual %}
+    <tr>
+      <td class="py-1 px-3 font-medium">FY{{ r.fiscal_year }}</td>
+      <td class="num">{{ r.revenue_cr | cr }}</td>
+      <td class="num">{{ r.ebitda_cr | cr }}</td>
+      <td class="num">{{ r.ebit_cr | cr }}</td>
+      <td class="num">{{ r.pat_cr | cr }}</td>
+      <td class="num">{{ r.ebitda_margin_pct | num }}</td>
+      <td class="num">{{ r.net_margin_pct | num }}</td>
+      <td class="num">{{ r.eps_basic | num }}</td>
+      <td class="num">{{ r.eps_diluted | num }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Quarterly -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-2">Quarterly P&amp;L (last 13)</h2>
+  <div class="scroll-x">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr>
+        <th class="py-1.5 px-3 text-left">Quarter</th><th>End</th>
+        <th class="num">Revenue</th><th class="num">EBITDA</th>
+        <th class="num">PAT</th><th class="num">EBITDA %</th><th class="num">EPS</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in fin_qtr %}
+    <tr>
+      <td class="py-1 px-3 font-medium">{{ r.quarter }}</td>
+      <td class="text-slate-500">{{ r.quarter_end_date or "—" }}</td>
+      <td class="num">{{ r.revenue_cr | cr }}</td>
+      <td class="num">{{ r.ebitda_cr | cr }}</td>
+      <td class="num">{{ r.pat_cr | cr }}</td>
+      <td class="num">{{ r.ebitda_margin_pct | num }}</td>
+      <td class="num">{{ r.eps_basic | num }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Balance sheet + cash flow side by side -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Balance sheet</h2>
+    <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+        <tr><th class="py-1.5 px-3 text-left">FY</th><th class="num">Assets</th><th class="num">Liab</th><th class="num">Equity</th><th class="num">Debt</th></tr>
+      </thead>
+      <tbody>
+      {% for r in bs %}
+      <tr>
+        <td class="py-1 px-3 font-medium">FY{{ r.fiscal_year }}</td>
+        <td class="num">{{ r.total_assets_cr | cr }}</td>
+        <td class="num">{{ r.total_liabilities_cr | cr }}</td>
+        <td class="num">{{ r.equity_cr | cr }}</td>
+        <td class="num">{{ r.total_debt_cr | cr }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Cash flow</h2>
+    <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+        <tr><th class="py-1.5 px-3 text-left">FY</th><th class="num">CFO</th><th class="num">CFI</th><th class="num">CFF</th><th class="num">FCF</th></tr>
+      </thead>
+      <tbody>
+      {% for r in cf %}
+      <tr>
+        <td class="py-1 px-3 font-medium">FY{{ r.fiscal_year }}</td>
+        <td class="num">{{ r.cfo_cr | cr }}</td>
+        <td class="num">{{ r.cfi_cr | cr }}</td>
+        <td class="num">{{ r.cff_cr | cr }}</td>
+        <td class="num">{{ r.fcf_cr | cr }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- Ratios + Growth -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Ratios</h2>
+    <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+        <tr><th class="py-1.5 px-3 text-left">FY</th><th class="num">ROE %</th><th class="num">ROCE %</th><th class="num">D/E</th><th class="num">Debt/EBITDA</th><th class="num">Asset turnover</th></tr>
+      </thead>
+      <tbody>
+      {% for r in ratios %}
+      <tr>
+        <td class="py-1 px-3 font-medium">FY{{ r.fiscal_year }}</td>
+        <td class="num">{{ r.roe | num }}</td>
+        <td class="num">{{ r.roce | num }}</td>
+        <td class="num">{{ r.debt_to_equity | num }}</td>
+        <td class="num">{{ r.debt_to_ebitda | num }}</td>
+        <td class="num">{{ r.asset_turnover | num }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Growth</h2>
+    <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+        <tr><th class="py-1.5 px-3 text-left">FY</th><th class="num">Rev YoY %</th><th class="num">PAT YoY %</th><th class="num">Rev CAGR 5y</th><th class="num">PAT CAGR 5y</th></tr>
+      </thead>
+      <tbody>
+      {% for r in growth %}
+      <tr>
+        <td class="py-1 px-3 font-medium">FY{{ r.fiscal_year }}</td>
+        <td class="num {% if r.revenue_growth_yoy and r.revenue_growth_yoy < 0 %}neg{% elif r.revenue_growth_yoy and r.revenue_growth_yoy > 0 %}pos{% endif %}">{{ r.revenue_growth_yoy | num }}</td>
+        <td class="num {% if r.pat_growth_yoy and r.pat_growth_yoy < 0 %}neg{% elif r.pat_growth_yoy and r.pat_growth_yoy > 0 %}pos{% endif %}">{{ r.pat_growth_yoy | num }}</td>
+        <td class="num">{{ r.revenue_cagr_5y | num }}</td>
+        <td class="num">{{ r.pat_cagr_5y | num }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+{% if peers %}
+<!-- Peers within sector -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-2">
+    Top 10 peers in {{ company.sector }}
+    <a href="/sector/{{ company.sector | urlencode }}" class="text-xs text-blue-600 hover:underline ml-2">view full sector →</a>
+  </h2>
+  <div class="scroll-x">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr>
+        <th class="py-1.5 px-3 text-left">Symbol</th>
+        <th class="text-left">Name</th>
+        <th class="num">Mcap</th>
+        <th class="num">ROE</th>
+        <th class="num">Quality</th>
+        <th class="num">Value</th>
+        <th class="num">Growth</th>
+        <th class="num">Composite</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in peers %}
+    <tr {% if p.symbol == company.symbol %}class="bg-blue-50"{% endif %}>
+      <td class="py-1 px-3 font-mono"><a class="text-blue-600 hover:underline" href="/company/{{ p.symbol }}">{{ p.symbol }}</a></td>
+      <td>{{ p.name }}</td>
+      <td class="num">{{ p.market_cap_cr | cr }}</td>
+      <td class="num">{{ p.roe | num }}</td>
+      <td class="num">{{ p.quality_score | num(0) }}</td>
+      <td class="num">{{ p.value_score | num(0) }}</td>
+      <td class="num">{{ p.growth_score | num(0) }}</td>
+      <td class="num font-semibold">
+        <span class="pill {% if p.composite_score|float > 60 %}pill-ok{% elif p.composite_score|float > 40 %}pill-warn{% else %}pill-err{% endif %}">{{ p.composite_score | num(1) }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Shareholding -->
+{% if sh %}
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-2">Shareholding (last 12 quarters)</h2>
+  <div class="scroll-x">
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr><th class="py-1.5 px-3 text-left">Quarter</th><th class="num">Promoter %</th><th class="num">FII %</th><th class="num">DII %</th><th class="num">Public %</th><th class="num">Shareholders</th></tr>
+    </thead>
+    <tbody>
+    {% for r in sh %}
+    <tr>
+      <td class="py-1 px-3 font-medium">{{ r.quarter }}</td>
+      <td class="num">{{ r.promoter_pct | num }}</td>
+      <td class="num">{{ r.fii_pct | num }}</td>
+      <td class="num">{{ r.dii_pct | num }}</td>
+      <td class="num">{{ r.public_pct | num }}</td>
+      <td class="num">{{ r.total_shareholders | num(0) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  const pc = {{ price_chart | tojson }};
+  if (pc.dates.length) {
+    Plotly.newPlot("priceChart", [{
+      x: pc.dates, y: pc.close, type: "scatter", mode: "lines",
+      name: "Close", line: { color: "#2563eb", width: 1.5 },
+    }], {
+      margin: { l: 50, r: 10, t: 10, b: 40 },
+      xaxis: { type: "date" },
+      yaxis: { title: "₹" },
+    }, { displayModeBar: false });
+  } else {
+    document.getElementById("priceChart").innerHTML =
+      "<div class='text-sm text-slate-500 text-center pt-32'>No price data yet</div>";
+  }
+
+  const rc = {{ rev_chart | tojson }};
+  if (rc.years.length) {
+    Plotly.newPlot("revChart", [
+      { x: rc.years, y: rc.revenue_cr, type: "bar", name: "Revenue", marker: { color: "#0ea5e9" } },
+      { x: rc.years, y: rc.pat_cr,     type: "bar", name: "PAT",     marker: { color: "#10b981" } },
+    ], {
+      barmode: "group",
+      margin: { l: 60, r: 10, t: 10, b: 40 },
+      yaxis: { title: "₹ cr" },
+    }, { displayModeBar: false });
+  } else {
+    document.getElementById("revChart").innerHTML =
+      "<div class='text-sm text-slate-500 text-center pt-32'>No annual financials yet</div>";
+  }
+
+  const rtc = {{ ratio_chart | tojson }};
+  const rtcEl = document.getElementById("ratioChart");
+  if (rtcEl && rtc.years.length) {
+    Plotly.newPlot(rtcEl, [
+      { x: rtc.years, y: rtc.roe,  type: "scatter", mode: "lines+markers", name: "ROE %",  line: { color: "#16a34a", width: 2 } },
+      { x: rtc.years, y: rtc.roce, type: "scatter", mode: "lines+markers", name: "ROCE %", line: { color: "#2563eb", width: 2 } },
+      { x: rtc.years, y: rtc.de,   type: "scatter", mode: "lines+markers", name: "D/E",    line: { color: "#dc2626", width: 2 }, yaxis: "y2" },
+    ], {
+      margin: { l: 50, r: 50, t: 10, b: 40 },
+      yaxis:  { title: "%" },
+      yaxis2: { title: "D/E", overlaying: "y", side: "right" },
+      legend: { orientation: "h", y: -0.2 },
+    }, { displayModeBar: false });
+  } else if (rtcEl) {
+    rtcEl.innerHTML = "<div class='text-sm text-slate-500 text-center pt-24'>No ratios computed yet</div>";
+  }
+
+  const shc = {{ sh_chart | tojson }};
+  const shcEl = document.getElementById("shChart");
+  if (shcEl && shc.quarters.length) {
+    Plotly.newPlot(shcEl, [
+      { x: shc.quarters, y: shc.promoter, type: "scatter", mode: "lines", name: "Promoter", line: { color: "#7c3aed" }, stackgroup: "one" },
+      { x: shc.quarters, y: shc.fii,      type: "scatter", mode: "lines", name: "FII",      line: { color: "#0ea5e9" }, stackgroup: "one" },
+      { x: shc.quarters, y: shc.dii,      type: "scatter", mode: "lines", name: "DII",      line: { color: "#10b981" }, stackgroup: "one" },
+    ], {
+      margin: { l: 50, r: 10, t: 10, b: 60 },
+      xaxis: { tickangle: -35 },
+      yaxis: { title: "%" },
+      legend: { orientation: "h", y: -0.3 },
+    }, { displayModeBar: false });
+  } else if (shcEl) {
+    shcEl.innerHTML = "<div class='text-sm text-slate-500 text-center pt-24'>No shareholding data yet</div>";
+  }
+</script>
+{% endblock %}

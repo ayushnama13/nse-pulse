@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+build/
+dist/
+.eggs/
+
+# Project data
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/raw/
+data/parquet/
+data/portfolio/
+data/exports/
+logs/*.log
+*.duckdb
+
+# Mystery / orphan binaries
+ruvector.db
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Secrets
+.env
+.env.local
+*.secret
+secrets/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/
+.env.*
+!.env.example
+!.env.template
+*.pyc
+*.pem
+*.jks
+
+# Private / generated
+data/.nse_cache/
+*.cookies
+cookies.txt
+insta_session.json
+.claude/
+CLAUDE.md
+**/CONVERSATION_RESUME.md
+**/HANDOFF.md
+node_modules/

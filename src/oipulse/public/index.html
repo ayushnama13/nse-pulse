@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>OI Pulse — NSE Options Open Interest Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-grid-layout@2.2.3/dist/react-grid-layout.min.js" crossorigin></script>
+<link rel="stylesheet" href="https://unpkg.com/react-grid-layout@2.2.3/dist/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/react-resizable@3.0.5/css/styles.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="glyph">◈</div>
+    <div class="name">OI <b>Pulse</b></div>
+  </div>
+  <select id="symSel" aria-label="Symbol">
+    <option value="NIFTY">NIFTY</option>
+    <option value="BANKNIFTY">BANKNIFTY</option>
+    <option value="FINNIFTY">FINNIFTY</option>
+    <option value="NIFTYIT">NIFTYIT</option>
+    <option value="MIDCPNIFTY">MIDCPNIFTY</option>
+  </select>
+  <select id="expSel" aria-label="Expiry"><option>—</option></select>
+  <button class="primary" id="snapBtn" title="Force snapshot (S)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Snapshot
+  </button>
+  <button class="ghost" id="themeBtn" title="Toggle light/dark" aria-pressed="false">☼</button>
+  <span class="live" id="liveBadge"><span class="dot"></span><span id="liveLabel">LIVE</span></span>
+  <span class="clock" id="clock"></span>
+</header>
+
+<div class="stats" id="stats">
+  <div class="stat spot">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Spot
+    </div>
+    <div class="value num" id="vSpot">—</div>
+    <svg class="sparkline" id="sparkSpot" viewBox="0 0 100 28" preserveAspectRatio="none"></svg>
+  </div>
+  <div class="stat maxpain">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      Max Pain
+    </div>
+    <div class="value num" id="vMP">—</div>
+    <div class="sub" id="vMPSub"></div>
+  </div>
+  <div class="stat" id="pcrStat">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
+      OI PCR
+    </div>
+    <div class="value num" id="vPCR">—</div>
+    <div class="sub" id="vPCRSub"></div>
+    <svg class="sparkline" id="sparkPCR" viewBox="0 0 100 28" preserveAspectRatio="none"></svg>
+  </div>
+  <div class="stat" id="volPcrStat">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+      Vol PCR
+    </div>
+    <div class="value num" id="vVolPCR">—</div>
+    <div class="sub" id="vVolPCRSub"></div>
+    <svg class="sparkline" id="sparkVolPCR" viewBox="0 0 100 28" preserveAspectRatio="none"></svg>
+  </div>
+  <div class="stat" id="wpcrStat">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+      WPCR <span style="font-size:9px;color:var(--text-faint);font-weight:500" title="Premium-weighted PCR (LTP × OI)">(₹)</span>
+    </div>
+    <div class="value num" id="vWPCR">—</div>
+    <div class="sub" id="vWPCRSub"></div>
+  </div>
+  <div class="stat resistance">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
+      Resistance
+    </div>
+    <div class="value num" id="vRes">—</div>
+    <div class="sub" id="vResSub"></div>
+  </div>
+  <div class="stat support">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>
+      Support
+    </div>
+    <div class="value num" id="vSup">—</div>
+    <div class="sub" id="vSupSub"></div>
+  </div>
+  <div class="stat">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+      Total CE OI
+    </div>
+    <div class="value num" id="vTCE">—</div>
+  </div>
+  <div class="stat">
+    <div class="label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+      Total PE OI
+    </div>
+    <div class="value num" id="vTPE">—</div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="chain">Option Chain</button>
+  <button class="tab" data-tab="oi">OI &amp; Gamma</button>
+  <button class="tab" data-tab="vol">Vol &amp; Skew</button>
+  <button class="tab" data-tab="trends">Trends</button>
+  <button class="tab" data-tab="analytics">Analytics</button>
+  <button class="tab" data-tab="macro">Macro</button>
+  <button class="tab" data-tab="multi">Multi-Index</button>
+  <button class="tab" data-tab="compare">Compare</button>
+  <button class="tab" data-tab="pulse">Pulse</button>
+  <button class="tab" data-tab="calendar">Calendar</button>
+  <button class="tab" data-tab="payoff">Payoff</button>
+  <select id="tabSelect" class="tab-select" aria-label="Section" style="display:none">
+    <option value="chain">Option Chain</option>
+    <option value="oi">OI &amp; Gamma</option>
+    <option value="vol">Vol &amp; Skew</option>
+    <option value="trends">Trends</option>
+    <option value="analytics">Analytics</option>
+    <option value="macro">Macro</option>
+    <option value="multi">Multi-Index</option>
+    <option value="compare">Compare</option>
+    <option value="pulse">Pulse</option>
+    <option value="calendar">Calendar</option>
+    <option value="payoff">Payoff</option>
+  </select>
+</nav>
+
+<main>
+  <section class="panel active" id="panel-chain">
+    <div class="chain-controls">
+      <span class="lab">ATM range</span>
+      <select id="atmRangeSel" class="mini-sel">
+        <option value="200">±200</option>
+        <option value="300">±300</option>
+        <option value="500" selected>±500</option>
+        <option value="1000">±1000</option>
+        <option value="0">All</option>
+      </select>
+      <span class="lab" style="margin-left:10px">Filter</span>
+      <select id="buildupFilterSel" class="mini-sel">
+        <option value="all">All</option>
+        <option value="ce-build">CE Short Buildup</option>
+        <option value="ce-cover">CE Short Covering</option>
+        <option value="pe-build">PE Long Buildup</option>
+        <option value="pe-unwind">PE Long Unwinding</option>
+        <option value="any-build">Any Buildup</option>
+      </select>
+      <span id="chainCountTag" style="margin-left:auto;font-size:11px;color:var(--text-faint)"></span>
+      <button class="ghost" id="addNoteBtn" title="Add a note on a strike">+ Note</button>
+    </div>
+    <div id="notesStrip" class="notes-strip" hidden></div>
+    <div class="chain-wrap">
+      <div class="chain-scroll" id="chainScroll">
+        <table class="chain" id="chainTable">
+          <thead>
+            <tr>
+              <th class="ce-h">OI</th><th class="ce-h">ΔOI</th><th class="ce-h">Vol</th>
+              <th class="ce-h">IV</th><th class="ce-h">LTP</th>
+              <th class="strike-h">Strike</th>
+              <th class="pe-h">LTP</th><th class="pe-h">IV</th><th class="pe-h">Vol</th>
+              <th class="pe-h">ΔOI</th><th class="pe-h">OI</th>
+            </tr>
+          </thead>
+          <tbody id="chainBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-oi">
+    <!-- Shared strike-range control for the OI + Gamma charts on this tab -->
+    <div id="oiChartCtrl"></div>
+    <div class="grid-2">
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Open Interest by Strike <span class="tag" id="oiRangeTag">ATM ±12</span><span class="tag" id="oiLotTag">lot —</span></h3>
+        <div class="window-bar" style="margin-bottom:10px">
+          <button class="window-btn active" data-oi-mode="oi">OI</button>
+          <button class="window-btn" data-oi-mode="value">OI in Value (₹)</button>
+          <button class="window-btn" data-oi-mode="chg">ΔOI (additions vs unwinding)</button>
+          <button class="window-btn" data-oi-mode="chgvalue">ΔOI in Value (₹)</button>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--ce)"></span>Calls (CE)</span>
+          <span><span class="sw" style="background:var(--pe)"></span>Puts (PE)</span>
+          <span><span class="sw" style="background:var(--violet)"></span>ATM</span>
+          <span><span class="sw" style="background:var(--cyan)"></span>Spot</span>
+          <span><span class="sw" style="background:var(--violet-soft)"></span>Max Pain</span>
+        </div>
+        <svg class="chart" id="oiChart" viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5" id="oiChartHint">
+          <strong>OI</strong> = raw contracts. <strong>Value (₹)</strong> = OI × LTP × lot, the actual capital parked at each strike. <strong>ΔOI</strong> shows today's additions (solid) vs unwinding (hollow). <strong>ΔOI Value (₹)</strong> is the same but priced in rupees — the closest thing to "money flow" you can read off the chain.
+        </div>
+      </div>
+
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Gamma Exposure <span class="tag" id="gammaFlipTag">flip —</span> <span class="tag" id="gammaMethodTag">BS Γ</span></h3>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--green)"></span>Positive (call-heavy / mean-reverting)</span>
+          <span><span class="sw" style="background:var(--red)"></span>Negative (put-heavy / trending)</span>
+          <span><span class="sw" style="background:var(--cyan)"></span>Spot</span>
+          <span><span class="sw" style="background:var(--amber)"></span>γ Flip</span>
+          <span><span class="sw" style="background:var(--violet-soft)"></span>Max Pain</span>
+        </div>
+        <svg class="chart" id="gammaChart" viewBox="0 0 1000 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          <strong>Read:</strong> above the γ-flip strike, dealers are typically long gamma → they buy dips and sell rips → low realized vol. Below, the opposite — trending regime. Real Black-Scholes Γ per strike using NSE IV; falls back to a Gaussian proxy only when IV is missing for a strike.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-vol">
+    <div id="volChartCtrl"></div>
+    <div class="grid-2">
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>IV Skew <span class="tag" id="skewTag">—</span></h3>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--ce)"></span>CE IV</span>
+          <span><span class="sw" style="background:var(--pe)"></span>PE IV</span>
+          <span><span class="sw" style="background:var(--violet)"></span>ATM</span>
+        </div>
+        <svg class="chart" id="ivSkewChart" viewBox="0 0 1000 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          <strong>Read:</strong> steep PE skew at OTM puts (PE IV ≫ CE IV) = market paying up for downside protection = bearish hedging. Inverted skew (CE IV &gt; PE IV) often precedes squeezes.
+        </div>
+      </div>
+      <div class="card">
+        <h3>ATM Straddle Premium <span class="tag" id="straddleTag">—</span></h3>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;letter-spacing:-0.03em;margin:6px 0 12px" id="straddleCurrent">—</div>
+        <svg class="chart" id="straddleChart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          The market's predicted ±move by expiry. If realized move &lt; straddle, premium sellers won.
+        </div>
+      </div>
+      <div class="card">
+        <h3>OI PCR vs Vol PCR vs WPCR</h3>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--violet)"></span>OI PCR</span>
+          <span><span class="sw" style="background:var(--cyan)"></span>Vol PCR</span>
+          <span><span class="sw" style="background:var(--amber)"></span>WPCR (₹)</span>
+        </div>
+        <svg class="chart" id="pcrCmpChart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          OI PCR = position book. Vol PCR = today's flow. WPCR = capital ₹ ratio. Divergence between them is the real signal.
+        </div>
+      </div>
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Premium Skew <span class="tag">LTP curvature across strikes</span></h3>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--ce)"></span>CE LTP</span>
+          <span><span class="sw" style="background:var(--pe)"></span>PE LTP</span>
+          <span><span class="sw" style="background:var(--violet)"></span>ATM</span>
+        </div>
+        <svg class="chart" id="premiumSkewChart" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Pricing disparity across strikes. The crossing point ≈ ATM. A "fat" right tail (expensive deep CE) signals upside-call demand; a fat left tail signals downside-put demand.
+        </div>
+      </div>
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Straddle Ladder <span class="tag">10 strikes around ATM · CE+PE LTP</span></h3>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--violet)"></span>Straddle premium</span>
+          <span><span class="sw" style="background:var(--ce)"></span>CE component</span>
+          <span><span class="sw" style="background:var(--pe)"></span>PE component</span>
+        </div>
+        <svg class="chart" id="straddleLadderChart" viewBox="0 0 1000 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Each bar = the cost of a long straddle (CE+PE) at that strike. Lowest bar ≈ ATM = market's predicted ±move. The slope tells you which side carries more vol risk premium.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-trends">
+    <div class="grid-2">
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>OI Change by Strike <span class="tag" id="oiChangeWindowTag">last 2 hr</span></h3>
+        <div class="window-bar">
+          <button class="window-btn" data-w="5">5 min</button>
+          <button class="window-btn" data-w="10">10 min</button>
+          <button class="window-btn" data-w="15">15 min</button>
+          <button class="window-btn" data-w="30">30 min</button>
+          <button class="window-btn" data-w="60">1 hr</button>
+          <button class="window-btn active" data-w="120">2 hr</button>
+          <button class="window-btn" data-w="180">3 hr</button>
+          <button class="window-btn" data-w="1440">Full Day</button>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--pe)"></span>Put OI Δ</span>
+          <span><span class="sw" style="background:var(--ce)"></span>Call OI Δ</span>
+          <span><span class="sw" style="background:var(--cyan)"></span>Spot</span>
+        </div>
+        <svg class="chart" id="oiChangeChart" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="summary-box" id="oiChangeSummary"></div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Compares the latest snapshot to one ~N minutes earlier. Tall green PE bars below ATM = put writing (support being defended). Tall red CE bars above ATM = call writing (resistance being capped).
+        </div>
+      </div>
+
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Multi-Strike OI <span class="tag">strike-level positioning over time</span></h3>
+        <div class="window-bar">
+          <button class="window-btn" data-ms-w="60">1 hr</button>
+          <button class="window-btn" data-ms-w="120">2 hr</button>
+          <button class="window-btn" data-ms-w="240">4 hr</button>
+          <button class="window-btn active" data-ms-w="0">All</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">Pick which strikes to track (defaults to top 6 by total OI):</div>
+        <div class="strike-picker" id="multiStrikePicker"></div>
+        <div class="legend">
+          <span><span class="sw" style="background:#9ca3af"></span>Spot (left axis)</span>
+          <span style="color:var(--text-faint)">Selected strike OI on right axis</span>
+        </div>
+        <svg class="chart" id="multiStrikeChart" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Cumulative ΔOI Tracker <span class="tag">intraday net flow vs prior close</span></h3>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--pe)"></span>Total Put ΔOI</span>
+          <span><span class="sw" style="background:var(--ce)"></span>Total Call ΔOI</span>
+          <span><span class="sw" style="background:var(--violet)"></span>PE − CE spread</span>
+        </div>
+        <svg class="chart" id="cumOIChart" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Running totals of all CE / PE OI changes since prior close, at every snapshot. PE−CE rising = bullish positioning shift; falling = bearish. Watch for inflections — they mark intraday regime changes.
+        </div>
+      </div>
+
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Single-Strike Combo Chart <span class="tag" id="comboTag">premium + OI for one strike</span></h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+          <span class="lab" style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Strike</span>
+          <select id="comboStrikeSel" class="mini-sel" style="min-width:120px"></select>
+          <span class="lab" style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Side</span>
+          <div class="window-bar" style="margin:0">
+            <button class="window-btn active" data-combo-side="CE">CE</button>
+            <button class="window-btn" data-combo-side="PE">PE</button>
+          </div>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--violet)"></span>LTP (left axis)</span>
+          <span><span class="sw" style="background:var(--cyan)"></span>OI (right axis)</span>
+          <span><span class="sw" style="background:#9ca3af"></span>Spot</span>
+        </div>
+        <svg class="chart" id="comboChart" viewBox="0 0 1000 360" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Premium up + OI up = <strong>Long Buildup</strong>. Premium down + OI up = <strong>Short Buildup</strong>. Premium up + OI down = <strong>Short Covering</strong>. Premium down + OI down = <strong>Long Unwinding</strong>.
+        </div>
+      </div>
+
+      <div class="chart-card" style="grid-column: 1 / -1">
+        <h3>Daily OI vs Time <span class="tag" id="dailyOITag">last 30 trading days</span></h3>
+        <div class="legend" style="align-items:center;flex-wrap:wrap">
+          <span><span class="sw" style="background:var(--pe)"></span>Put OI</span>
+          <span><span class="sw" style="background:var(--ce)"></span>Call OI</span>
+          <span><span class="sw" style="background:var(--violet)"></span>PCR (right)</span>
+          <span><span class="sw" style="background:#9ca3af"></span>Spot (right)</span>
+        </div>
+        <div id="dailyOICtrl"></div>
+        <svg class="chart" id="dailyOIChart" viewBox="0 0 1000 380" preserveAspectRatio="xMidYMid meet"></svg>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Each bar is the last snapshot of that trading day. Builds up as the database accumulates daily snapshots — empty until you have at least 2 days of data.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-analytics">
+    <div class="card" style="margin-bottom:14px">
+      <h3>F&amp;O Synopsis <span class="tag" id="regimeTagInline">computing…</span></h3>
+      <div id="regimeBadge"></div>
+      <div class="synopsis" id="synopsisGrid"></div>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:10px;line-height:1.5">
+        Color-coded snapshot of every signal in one place. Each cell flips green / red / amber based on its threshold so you can read the tape in two seconds.
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <h3>Regime Calendar <span class="tag" id="regimeTag">last 30 trading days · 5 intraday buckets</span></h3>
+      <div id="regimeCtrl"></div>
+      <div id="regimeHeatmap" class="regime-heatmap">Loading…</div>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+        Each cell is the classifier output for that hour bucket on that date. Spot consistent green columns in the afternoon = a pattern worth checking.
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>PCR Trend <span class="tag" style="cursor:pointer" id="pcrSmaToggle">SMA-5 off</span></h3>
+        <div class="gauge-wrap">
+          <svg id="pcrGauge" viewBox="0 0 240 140" style="width:240px;max-width:100%"></svg>
+          <div class="gauge-value" id="gaugePCR">—</div>
+        </div>
+        <svg class="chart" id="pcrChart" viewBox="0 0 600 200" preserveAspectRatio="none" style="margin-top:12px"></svg>
+      </div>
+      <div class="card">
+        <h3>Spot Price Trend</h3>
+        <svg class="chart" id="spotChart" viewBox="0 0 600 280" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="card" style="grid-column: 1 / -1">
+        <h3>OI Build-up Over Time <span class="tag">top 6 strikes by total OI</span></h3>
+        <div class="legend" id="oiHistoryLegend"></div>
+        <svg class="chart" id="oiHistoryChart" viewBox="0 0 1000 360" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="card">
+        <h3>OI Spurts <span class="tag">|ΔOI| &gt; 50K</span></h3>
+        <div class="badges" id="spurts"></div>
+      </div>
+      <div class="card">
+        <h3>Position Buildup <span class="tag" id="buildupTag">ATM ±500</span></h3>
+        <div id="buildupCtrl"></div>
+        <div style="overflow:auto"><table class="simple" id="buildupTbl">
+          <thead><tr><th class="label-cell" style="text-align:left">Strike</th><th>Side</th><th>ΔOI</th><th>Signal</th></tr></thead>
+          <tbody id="buildupBody"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <h3>Options Activity Scanner <span class="tag">top adds &amp; unwinds</span></h3>
+        <div style="overflow:auto"><table class="simple" id="activityTbl">
+          <thead><tr><th class="label-cell" style="text-align:left">Strike</th><th>Side</th><th>ΔOI</th><th>OI</th><th>Vol</th></tr></thead>
+          <tbody id="activityBody"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <h3>OI Z-Score <span class="tag">deviation from session mean</span></h3>
+        <div style="overflow:auto"><table class="simple" id="zScoreTbl">
+          <thead><tr><th class="label-cell" style="text-align:left">Strike</th><th>Side</th><th>OI</th><th>μ</th><th>z-score</th></tr></thead>
+          <tbody id="zScoreBody"></tbody>
+        </table></div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          |z| &gt; 2 = unusual OI for this strike vs its session mean. Often where new positions are landing.
+        </div>
+      </div>
+      <div class="card">
+        <h3>Trap Indicator <span class="tag">writers under pressure</span></h3>
+        <div id="trapBody"></div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Heuristic: strikes where premiums spiked AND OI dropped fast → writers covering = trapped. Sustained moves often follow.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-macro">
+    <div class="grid-2">
+      <div class="card">
+        <h3>India VIX <span class="tag" id="vixRegimeTag">—</span></h3>
+        <div class="vix-display">
+          <div class="v num" id="vixVal">—</div>
+          <div class="ch num" id="vixChg" style="color:var(--text-dim)">—</div>
+        </div>
+        <div class="vix-bar"><div class="marker" id="vixMarker" style="left:0%"></div></div>
+        <div class="vix-bar-labels">
+          <span>Calm &lt;12</span>
+          <span>Normal 12-20</span>
+          <span>Fear &gt;20</span>
+        </div>
+        <div id="vixDetails" style="margin-top:14px;font-size:12px;color:var(--text-dim)"></div>
+      </div>
+      <div class="card">
+        <h3>FII / DII Cash Activity</h3>
+        <div id="fiiDiiBody"><div style="color:var(--text-faint);font-size:12px;padding:8px 0">Loading…</div></div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          Smart money tape — FIIs lead, DIIs absorb. Net positive FII = institutional buying.
+        </div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1">
+        <h3>Participant-Wise OI <span class="tag">F&amp;O positioning · last business day</span></h3>
+        <div style="overflow:auto"><table class="simple" id="partOiTbl">
+          <thead><tr>
+            <th class="label-cell" style="text-align:left">Participant</th>
+            <th>Idx Fut Long</th><th>Idx Fut Short</th><th>Net Idx Fut</th>
+            <th>Idx Call Long</th><th>Idx Put Long</th>
+            <th>Net Stk Fut</th>
+          </tr></thead>
+          <tbody id="partOiBody"><tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:14px">Loading…</td></tr></tbody>
+        </table></div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:8px;line-height:1.5">
+          FII = foreign institutions. Pro = proprietary desks. Client = retail + HNI. Net Index Fut shifts by FIIs are the most-watched line on Indian desks.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-multi">
+    <div class="compare-bar" style="margin-bottom:14px">
+      <span style="color:var(--text-faint);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Side-by-side positioning</span>
+      <button class="btn" id="multiRefreshBtn" style="margin-left:auto">↻ Refresh</button>
+    </div>
+    <div class="grid-3" id="multiGrid"></div>
+  </section>
+
+  <section class="panel" id="panel-compare">
+    <div class="compare-bar">
+      <label>A</label>
+      <select id="cmpADate" class="mini-sel"></select>
+      <select id="cmpATime" class="mini-sel"></select>
+      <label style="margin-left:8px">B</label>
+      <select id="cmpBDate" class="mini-sel"></select>
+      <select id="cmpBTime" class="mini-sel"></select>
+      <button class="primary" id="cmpBtn" style="margin-left:auto">Compare A → B</button>
+    </div>
+    <div id="cmpHint" style="font-size:11px;color:var(--fg-4);margin:-8px 0 14px;padding:0 4px"></div>
+    <div class="compare-summary" id="cmpSummary"></div>
+    <div class="card" style="overflow:auto">
+      <table class="simple" id="cmpTbl">
+        <thead><tr>
+          <th class="label-cell" style="text-align:left">Strike</th>
+          <th>CE OI A</th><th>CE OI B</th><th>CE ΔOI</th>
+          <th>PE OI A</th><th>PE OI B</th><th>PE ΔOI</th>
+        </tr></thead>
+        <tbody id="cmpBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-pulse">
+    <div class="chart-card" style="grid-column: 1 / -1">
+      <h3>Spot vs CE/PE ΔOI <span class="tag">intraday cumulative since prior close</span></h3>
+
+      <div class="pulse-controls">
+        <div class="pulse-ctl-row">
+          <span class="lab">Date</span>
+          <select id="pulseDateSel" class="mini-sel"></select>
+          <span class="lab" style="margin-left:14px">Time window</span>
+          <span class="num pulse-time-label" id="pulseStartLabel">09:15</span>
+          <span class="pulse-arrow">→</span>
+          <span class="num pulse-time-label" id="pulseEndLabel">15:30</span>
+        </div>
+        <div class="pulse-ctl-row" style="margin-bottom:12px">
+          <span class="lab">ΔOI relative to</span>
+          <div class="window-bar" style="margin:0">
+            <button class="window-btn active" data-pulse-ref="prev">Prev Close</button>
+            <button class="window-btn" data-pulse-ref="day">Day Start</button>
+            <button class="window-btn" data-pulse-ref="window">Window Start</button>
+          </div>
+          <span class="lab" id="pulseRefHint" style="margin-left:auto;color:var(--fg-4);text-transform:none;letter-spacing:0;font-weight:400;font-size:11px"></span>
+        </div>
+        <div class="time-range" id="pulseRange">
+          <div class="time-range-track"></div>
+          <div class="time-range-fill" id="pulseRangeFill"></div>
+          <input type="range" id="pulseStartSlider" min="0" max="374" step="1" value="0">
+          <input type="range" id="pulseEndSlider" min="1" max="375" step="1" value="375">
+        </div>
+        <div class="time-range-tickmarks">
+          <span>09:15</span><span>10:30</span><span>11:45</span><span>13:00</span><span>14:15</span><span>15:30</span>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><span class="sw" style="background:var(--gold)"></span>Spot (left axis)</span>
+        <span><span class="sw" style="background:var(--ce)"></span>CE ΔOI (right axis)</span>
+        <span><span class="sw" style="background:var(--pe)"></span>PE ΔOI (right axis)</span>
+        <span style="color:var(--fg-4)">dashed line = zero baseline</span>
+      </div>
+      <svg class="chart" id="pulseChart" viewBox="0 0 1000 380" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="font-size:11px;color:var(--fg-4);margin-top:8px;line-height:1.5">
+        <strong>Read:</strong> spot rising while CE ΔOI climbs above zero = call writers being run over (resistance breaking).
+        Spot falling while PE ΔOI climbs above zero = put writers under pressure (support being lost).
+        Spot flat while both rise = range-bound consensus building.
+      </div>
+    </div>
+  </section>
+
+  <!-- Calendar (3.1) — per-expiry summary across nearest expiries -->
+  <section class="panel" id="panel-calendar">
+    <div class="card">
+      <h3>Calendar &mdash; multi-expiry roll <span class="tag" id="calendarTag">live · nearest 6 expiries</span></h3>
+      <div id="calendarCtrl"></div>
+      <div id="calendarBody">Loading…</div>
+      <div style="font-size:11px;color:var(--fg-4);margin-top:10px;line-height:1.5">
+        Front-week ATM IV vs back-month tells you whether the market is pricing
+        in event risk before or after expiry. Diverging PCR across expiries is
+        usually rolling activity.
+      </div>
+    </div>
+  </section>
+
+  <!-- Payoff (3.7) — pre-trade scenario tool -->
+  <section class="panel" id="panel-payoff">
+    <div class="card">
+      <h3>Payoff Visualizer <span class="tag">pre-trade scenario · two legs</span></h3>
+      <div class="payoff-controls" id="payoffControls">
+        <div class="payoff-leg" data-leg="0">
+          <span class="lab">Leg 1</span>
+          <select class="mini-sel" data-payoff="side"><option value="CE">CE</option><option value="PE">PE</option></select>
+          <select class="mini-sel" data-payoff="action"><option value="BUY">BUY</option><option value="SELL">SELL</option></select>
+          <select class="mini-sel" data-payoff="strike"></select>
+          <input type="number" class="mini-sel" data-payoff="qty" value="1" min="1" max="100" style="width:60px">
+          <span class="lab" data-payoff="ltp" style="margin-left:6px;color:var(--gold)">—</span>
+        </div>
+        <div class="payoff-leg" data-leg="1">
+          <span class="lab">Leg 2</span>
+          <select class="mini-sel" data-payoff="side"><option value="">—</option><option value="CE">CE</option><option value="PE">PE</option></select>
+          <select class="mini-sel" data-payoff="action"><option value="BUY">BUY</option><option value="SELL">SELL</option></select>
+          <select class="mini-sel" data-payoff="strike"></select>
+          <input type="number" class="mini-sel" data-payoff="qty" value="1" min="1" max="100" style="width:60px">
+          <span class="lab" data-payoff="ltp" style="margin-left:6px;color:var(--gold)">—</span>
+        </div>
+      </div>
+      <div class="legend" id="payoffSummary"></div>
+      <svg class="chart" id="payoffChart" viewBox="0 0 1000 380" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="font-size:11px;color:var(--fg-4);margin-top:8px;line-height:1.5">
+        Each leg multiplies by lot size automatically. Break-even line at zero P&amp;L; current spot marked.
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="/js/app.js" defer></script>
+</body>
+</html>

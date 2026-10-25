@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Admin · health{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold tracking-tight mb-1">Health</h1>
+<p class="text-sm text-slate-500 mb-5">
+  Per-source freshness, table counts, recent failures, score + snapshot state.
+  Anything not green deserves a look.
+</p>
+
+<!-- Source health -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-3">Sources</h2>
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr>
+        <th class="py-1.5 px-3 text-left">Source</th>
+        <th>Last success</th>
+        <th>Last run</th>
+        <th class="num">OK 7d</th>
+        <th class="num">Fail 7d</th>
+        <th class="num">Unhealthy</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for s in src_health %}
+    <tr>
+      <td class="py-1 px-3 font-mono">{{ s.source }}</td>
+      <td class="text-slate-700">{{ s.last_success or "(never)" }}</td>
+      <td class="text-slate-500">{{ s.last_run or "—" }}</td>
+      <td class="num">{{ s.ok_7d or 0 }}</td>
+      <td class="num">{{ s.fails_7d or 0 }}</td>
+      <td class="num">{{ s.unhealthy_count or 0 }}</td>
+      <td>
+        {% if s.unhealthy_count and s.unhealthy_count|int > 0 %}
+          <span class="pill pill-unhealthy">unhealthy</span>
+        {% elif s.fails_7d and s.fails_7d|int > 0 %}
+          <span class="pill pill-warn">{{ s.fails_7d }} fails</span>
+        {% else %}
+          <span class="pill pill-ok">ok</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Tables + Snapshot + Scores -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-3">Tables</h2>
+    <table class="min-w-full text-sm">
+      <tbody>
+      {% for t in table_counts %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="py-1 font-mono text-xs">{{ t.table }}</td>
+        <td class="num">{{ t.n }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-3">Materialized snapshot</h2>
+    <div class="text-sm space-y-2">
+      <div>Rows: <span class="font-semibold">{{ snapshot_info.n if snapshot_info else 0 }}</span></div>
+      <div class="text-xs text-slate-500">
+        Refresh via <code class="bg-slate-100 px-1">python -m stock.main snapshot</code> after a bootstrap or scoring run.
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-3">Composite scores</h2>
+    <div class="text-sm space-y-2">
+      <div>Last computed: <span class="font-semibold">{{ score_info.last_run or "(never)" }}</span></div>
+      <div>Scored: <span class="font-semibold">{{ score_info.n_scored or 0 }}</span></div>
+      <div class="text-xs text-slate-500">
+        Recompute via <code class="bg-slate-100 px-1">python -m stock.main scores</code>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DQ -->
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-5">
+  <h2 class="font-semibold mb-3">Data-quality issues</h2>
+  {% if dq_summary %}
+  <table class="min-w-full text-sm table-zebra">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr><th class="py-1.5 px-3 text-left">Issue type</th><th class="text-left">Severity</th><th class="num">Count</th></tr>
+    </thead>
+    <tbody>
+    {% for r in dq_summary %}
+    <tr>
+      <td class="py-1 px-3 font-mono text-xs">{{ r.issue_type }}</td>
+      <td>
+        <span class="pill {% if r.severity == 'high' %}pill-err{% elif r.severity == 'medium' %}pill-warn{% else %}pill-info{% endif %}">{{ r.severity }}</span>
+      </td>
+      <td class="num">{{ r.n }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-sm text-slate-500">No issues recorded yet.</div>
+  {% endif %}
+</div>
+
+<!-- Recent errors -->
+<div class="bg-white border border-slate-200 rounded-lg p-4">
+  <h2 class="font-semibold mb-3">Recent fetch failures (last 7 days)</h2>
+  {% if recent_errors %}
+  <div class="scroll-x">
+  <table class="min-w-full text-sm">
+    <thead class="text-xs text-slate-500 uppercase bg-slate-100">
+      <tr>
+        <th class="py-1.5 px-3 text-left">Started</th>
+        <th class="text-left">Source</th>
+        <th class="text-left">Symbol</th>
+        <th class="text-left">Error</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in recent_errors %}
+    <tr class="border-b border-slate-100">
+      <td class="py-1 px-3 text-xs text-slate-500">{{ e.started_at }}</td>
+      <td class="font-mono text-xs">{{ e.source }}</td>
+      <td class="font-mono text-xs">{{ e.symbol or "—" }}</td>
+      <td class="text-xs text-rose-700">{{ e.error_message }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="text-sm text-emerald-700">No failures in the last 7 days.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

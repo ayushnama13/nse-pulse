@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · stock_db{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+
+<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+  {% for tbl, n in counts.items() %}
+  <div class="bg-white border border-slate-200 rounded-lg p-3">
+    <div class="text-xs text-slate-500 uppercase tracking-wide">{{ tbl }}</div>
+    <div class="text-xl font-semibold num">{{ n | num(0) }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Companies by sector</h2>
+    <div id="sectorChart" style="height:320px"></div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-2">Market cap by sector (₹ cr)</h2>
+    <div id="mcapChart" style="height:320px"></div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-3">Top 15 by market cap</h2>
+    <div class="scroll-x">
+      <table class="min-w-full text-sm table-zebra">
+        <thead class="text-xs text-slate-500 uppercase">
+          <tr><th class="text-left py-1 px-2">Symbol</th><th class="text-left">Name</th><th class="text-left">Sector</th><th class="num">M-cap</th><th class="num">PE</th></tr>
+        </thead>
+        <tbody>
+        {% for r in top_mcap %}
+        <tr>
+          <td class="py-1 px-2"><a class="text-blue-600 hover:underline" href="/company/{{ r.symbol }}">{{ r.symbol }}</a></td>
+          <td>{{ r.name }}</td><td class="text-slate-500">{{ r.sector or "—" }}</td>
+          <td class="num">{{ r.market_cap_cr | cr }}</td>
+          <td class="num">{{ r.pe_ttm | num }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-lg p-4">
+    <h2 class="font-semibold mb-3">Source health</h2>
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase">
+        <tr><th class="text-left py-1 px-2">Source</th><th>Status</th><th>Last run</th><th class="num">Rows</th></tr>
+      </thead>
+      <tbody>
+      {% for r in last_runs %}
+      <tr>
+        <td class="py-1 px-2">{{ r.source }}</td>
+        <td>
+          {% set s = r.status %}
+          <span class="pill pill-{{ 'ok' if s=='success' else ('unhealthy' if s=='unhealthy' else ('err' if s=='failed' else 'warn')) }}">{{ s }}</span>
+        </td>
+        <td class="text-slate-500">{{ r.started_at.strftime('%Y-%m-%d %H:%M') if r.started_at else "—" }}</td>
+        <td class="num">{{ r.rows_written | num(0) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-xs text-slate-400 mt-2">
+      <a class="text-blue-600 hover:underline" href="/sources">Full fetch_log →</a>
+      &nbsp;·&nbsp;
+      <a class="text-blue-600 hover:underline" href="/admin/health">Health page →</a>
+    </p>
+  </div>
+</div>
+
+{% if top_scored %}
+<div class="bg-white border border-slate-200 rounded-lg p-4 mb-6">
+  <div class="flex items-baseline justify-between mb-3">
+    <h2 class="font-semibold">Top 10 by composite score</h2>
+    <a class="text-xs text-blue-600 hover:underline" href="/top">Full leaderboard →</a>
+  </div>
+  <div class="scroll-x">
+    <table class="min-w-full text-sm table-zebra">
+      <thead class="text-xs text-slate-500 uppercase">
+        <tr>
+          <th class="text-left py-1 px-2">Rank</th>
+          <th class="text-left">Symbol</th>
+          <th class="text-left">Name</th>
+          <th class="text-left">Sector</th>
+          <th class="num">Quality</th>
+          <th class="num">Value</th>
+          <th class="num">Growth</th>
+          <th class="num">Composite</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in top_scored %}
+      <tr>
+        <td class="py-1 px-2 text-slate-500">{{ r.universe_rank }}</td>
+        <td><a class="text-blue-600 hover:underline font-mono" href="/company/{{ r.symbol }}">{{ r.symbol }}</a></td>
+        <td>{{ r.name }}</td>
+        <td><a class="text-slate-500 hover:text-blue-600" href="/sector/{{ r.sector | urlencode }}">{{ r.sector or "—" }}</a></td>
+        <td class="num">{{ r.quality_score | num(0) }}</td>
+        <td class="num">{{ r.value_score | num(0) }}</td>
+        <td class="num">{{ r.growth_score | num(0) }}</td>
+        <td class="num font-semibold">
+          <span class="pill {% if r.composite_score|float > 60 %}pill-ok{% elif r.composite_score|float > 40 %}pill-warn{% else %}pill-err{% endif %}">
+            {{ r.composite_score | num(1) }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  const sectors = {{ sectors | tojson }};
+  Plotly.newPlot("sectorChart", [{
+    type: "bar",
+    x: sectors.map(d => d.sector),
+    y: sectors.map(d => d.n),
+    marker: { color: "#2563eb" },
+  }], {
+    margin: { l: 40, r: 10, t: 10, b: 110 },
+    xaxis: { tickangle: -35 },
+    yaxis: { title: "# companies" },
+  }, { displayModeBar: false });
+
+  const mcaps = {{ mcap_by_sector | tojson }};
+  Plotly.newPlot("mcapChart", [{
+    type: "bar",
+    x: mcaps.map(d => d.sector),
+    y: mcaps.map(d => d.mcap_cr),
+    marker: { color: "#0ea5e9" },
+    hovertemplate: "%{x}<br>₹%{y:,.0f} cr<extra></extra>",
+  }], {
+    margin: { l: 60, r: 10, t: 10, b: 110 },
+    xaxis: { tickangle: -35 },
+    yaxis: { title: "₹ crore" },
+  }, { displayModeBar: false });
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#05070b" />
+    <title>OI Pulse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* pre-JS splash — replaced the instant React mounts */
+      .boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: radial-gradient(1100px 520px at 50% -8%, rgba(34, 211, 238, 0.07), transparent 60%), #05070b;
+      }
+      .boot-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #22d3ee;
+        box-shadow: 0 0 16px #22d3ee;
+        animation: boot-breathe 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+      @keyframes boot-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(0.78);
+          opacity: 0.7;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-dot {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot">
+        <svg width="44" height="44" viewBox="0 0 32 32" fill="none">
+          <defs>
+            <linearGradient id="bg-lg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#22d3ee" />
+              <stop offset="1" stop-color="#a78bfa" />
+            </linearGradient>
+          </defs>
+          <rect x="1" y="1" width="30" height="30" rx="9.5" stroke="url(#bg-lg)" stroke-opacity="0.5" stroke-width="1.5" />
+          <path d="M6.5 17h4l2.2-7 4.6 12.5 2.4-8 1.8 2.5h4" stroke="url(#bg-lg)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="25.5" cy="17" r="1.6" fill="#22d3ee" />
+        </svg>
+        <span class="boot-dot"></span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

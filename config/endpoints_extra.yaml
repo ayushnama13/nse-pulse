@@ -1,0 +1,46 @@
+# NSE Data Pipeline — Endpoint Registry
+# All NSE URLs live here. src/ reads from this file only.
+# URL templates use {year}, {month}, {date}, {symbol}, {index} as placeholders.
+
+equity:
+  bhavcopy: "https://archives.nseindia.com/content/historical/EQUITIES/{year}/{month}/cm{date}bhav.csv.zip"
+  delivery: "https://archives.nseindia.com/archives/equities/mto/MTO_{date}.DAT"
+  quote: "https://www.nseindia.com/api/quote-equity"
+  preopen: "https://www.nseindia.com/api/market-data-pre-open"
+  gainers_losers: "https://www.nseindia.com/api/live-analysis-variations"
+  most_active: "https://www.nseindia.com/api/live-analysis-most-active-securities"
+  volume_gainers: "https://www.nseindia.com/api/live-analysis-volume-gainers"
+
+indices:
+  all_indices: "https://www.nseindia.com/api/allIndices"
+  constituents: "https://www.nseindia.com/api/equity-stockIndices"
+  history: "https://www.nseindia.com/api/historical/indicesHistory"
+
+derivatives:
+  option_chain_equity: "https://www.nseindia.com/api/option-chain-equities"
+  option_chain_index: "https://www.nseindia.com/api/option-chain-indices"
+  fo_bhavcopy: "https://archives.nseindia.com/content/historical/DERIVATIVES/{year}/{month}/fo{date}bhav.csv.zip"
+  participant_oi: "https://archives.nseindia.com/content/nsccl/fao_participant_oi_{date}.csv"
+  participant_vol: "https://archives.nseindia.com/content/nsccl/fao_participant_vol_{date}.csv"
+  most_active_futures: "https://www.nseindia.com/api/live-analysis-most-active-contracts"
+  oi_spurts: "https://www.nseindia.com/api/live-analysis-oi-spurts-underlyings"
+
+corporate:
+  actions: "https://www.nseindia.com/api/corporates-corporateActions"
+  meetings: "https://www.nseindia.com/api/corporates-board-meetings"
+  results: "https://www.nseindia.com/api/corporates-financial-results"
+  shareholding: "https://www.nseindia.com/api/corporates-shareholding"
+  insider: "https://www.nseindia.com/api/corporates-pit"
+  announcements: "https://www.nseindia.com/api/corporate-announcements"
+
+market:
+  fii_dii: "https://www.nseindia.com/api/fiidiiTradeReact"
+  bulk_deals: "https://www.nseindia.com/api/snapshot-capital-market-bulk-deals"
+  block_deals: "https://www.nseindia.com/api/snapshot-capital-market-block-deals"
+  status: "https://www.nseindia.com/api/marketStatus"
+  turnover: "https://www.nseindia.com/api/market-turnover"
+  circuit_breakers: "https://www.nseindia.com/api/live-analysis-price-band-hitter"
+
+calendar:
+  trading_holidays: "https://www.nseindia.com/api/holiday-master?type=trading"
+  clearing_holidays: "https://www.nseindia.com/api/holiday-master?type=clearing"

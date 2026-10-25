@@ -1,0 +1,19 @@
+# stock_db cron schedule
+# Install with: crontab -e (and paste the lines below, edit PATHS).
+# All times are SERVER LOCAL. NSE bhav copy publishes ~19:00 IST, so daily
+# job runs 19:30 IST minimum.
+#
+# Replace these placeholders before installing:
+#   <REPO>      = absolute path to the parent dir, e.g. /path/to/nse-pulse
+#   <PYTHON>    = absolute path to your venv python, e.g. /path/to/nse-pulse/.venv/bin/python
+#
+# Each job logs to stock/logs/cron-<jobname>.log.
+
+# Daily prices + bulk deals — Mon–Fri 19:30
+30 19 * * 1-5  cd <REPO> && <PYTHON> -m stock.main daily   >> <REPO>/stock/logs/cron-daily.log     2>&1
+
+# Weekly fundamentals refresh + risk flags + DQ — Sunday 10:00
+0  10 * * 0    cd <REPO> && <PYTHON> -m stock.main weekly  >> <REPO>/stock/logs/cron-weekly.log    2>&1
+
+# Quarterly Screener.in scrape — 15th of Feb/May/Aug/Nov at 02:00
+0  2  15 2,5,8,11 *  cd <REPO> && <PYTHON> -m stock.main quarterly >> <REPO>/stock/logs/cron-quarterly.log 2>&1
