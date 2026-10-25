@@ -48,7 +48,8 @@ _MONTHS = {"Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4, "May": 5, "Jun": 6,
 def _parse_header_date(s: str) -> date | None:
     """'Mar 2024' -> date(2024, 3, 31); returns None if unparseable."""
     s = s.strip()
-    m = re.match(r"^([A-Za-z]{3})\s*(\d{4})$", s)
+    # Screener appends the period length to odd-length years, e.g. 'Mar 201615m'
+    m = re.match(r"^([A-Za-z]{3})\s*(\d{4})(?:\d{1,2}m)?$", s)
     if not m:
         return None
     mon = _MONTHS.get(m.group(1).title())

@@ -32,13 +32,10 @@ def cmd_smoke_test() -> int:
 
 
 def cmd_init_db() -> int:
-    log.info("Running schema.sql against %s @ %s:%s", config.PG_DB, config.PG_HOST, config.PG_PORT)
+    log.info("Running schema.sql against %s", config.DB_PATH if hasattr(config, "DB_PATH") else "nse.db")
     db.exec_sql_file(config.SCHEMA_SQL)
-    rows = db.fetch_all(
-        "SELECT table_name FROM information_schema.tables "
-        "WHERE table_schema='public' ORDER BY table_name"
-    )
-    print(f"Tables in {config.PG_DB}: {len(rows)}")
+    rows = db.fetch_all("SELECT name AS table_name FROM sqlite_master WHERE type='table' ORDER BY name")
+    print(f"Tables: {len(rows)}")
     for r in rows:
         print("  -", r["table_name"])
     return 0 if len(rows) >= 23 else 1
