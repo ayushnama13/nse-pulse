@@ -15,12 +15,13 @@ from ..storage.models import BhavcopyEOD, CorporateAction, EquityAdjustedEOD
 
 
 _RATIO_RE = re.compile(r"(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)")
+_FV_RE = re.compile(r"from\s+(?:rs\.?|re\.?|inr|₹)?\s*(\d+(?:\.\d+)?).*?to\s+(?:rs\.?|re\.?|inr|₹)?\s*(\d+(?:\.\d+)?)", re.I | re.S)
 _DIVIDEND_AMT_RE = re.compile(r"(?:rs\.?|inr|₹)?\s*(\d+(?:\.\d+)?)")
 
 
 def _split_factor(description: str) -> Optional[float]:
     """For a split 'face value Rs.10 → Rs.1', adj_factor = 10/1 = 10 means OLD price /= 10."""
-    m = _RATIO_RE.search(description or "")
+    m = _FV_RE.search(description or "") or _RATIO_RE.search(description or "")
     if not m:
         return None
     a, b = float(m.group(1)), float(m.group(2))

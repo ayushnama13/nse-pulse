@@ -68,6 +68,10 @@ def market(top: int = Query(15, ge=1, le=100)):
     prev = pd.to_numeric(df.get("prev_close"), errors="coerce")
     close = pd.to_numeric(df.get("close"), errors="coerce")
     df["chg_pct"] = (close / prev - 1) * 100
+    # ret_1d is computed on split/bonus-adjusted closes; raw prev_close is unadjusted on ex-dates.
+    if "ret_1d" in df.columns:
+        adj = pd.to_numeric(df["ret_1d"], errors="coerce") * 100
+        df["chg_pct"] = adj.where(adj.notna(), df["chg_pct"])
     d = df.dropna(subset=["chg_pct"])
     cols = [c for c in ["symbol", "close", "chg_pct", "volume", "delivery_pct", "rs_rating"] if c in d.columns]
     anomalies = q.get_anomaly_flags(latest_only=True)
