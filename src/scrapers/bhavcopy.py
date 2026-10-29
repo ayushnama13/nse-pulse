@@ -26,7 +26,18 @@ from ..utils.config import get_endpoints
 _EQUITY_SERIES = {"EQ", "BE", "SM", "BZ"}
 
 
+# NSE publishes the UDiFF file from this date; earlier days only exist in the legacy format.
+_UDIFF_START = date(2024, 1, 2)
+
+
+def _legacy_url(d: date) -> str:
+    stamp = d.strftime("%d%b%Y").upper()
+    return f"https://archives.nseindia.com/content/historical/EQUITIES/{d.year}/{stamp[2:5]}/cm{stamp}bhav.csv.zip"
+
+
 def _bhavcopy_url(d: date) -> str:
+    if d < _UDIFF_START:
+        return _legacy_url(d)
     tpl = get_endpoints()["mvp"]["bhavcopy_archive"]
     return tpl.replace("{YYYYMMDD}", d.strftime("%Y%m%d"))
 
@@ -65,6 +76,32 @@ def fetch_bhavcopy(session: NSESession, run_date: date) -> list[dict[str, Any]]:
         raise ValueError(f"Bhavcopy ZIP has no CSV: {url}")
 
     rows: list[dict[str, Any]] = []
+    if run_date < _UDIFF_START:
+        with zf.open(csv_names[0]) as f:
+            reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8", newline=""))
+            for r in reader:
+                series = (r.get("SERIES") or "").strip().upper()
+                if series not in _EQUITY_SERIES:
+                    continue
+                symbol = (r.get("SYMBOL") or "").strip().upper()
+                try:
+                    rows.append({
+                        "date": run_date, "symbol": symbol, "series": series,
+                        "open": float(r["OPEN"]), "high": float(r["HIGH"]),
+                        "low": float(r["LOW"]), "close": float(r["CLOSE"]),
+                        "last": _to_float(r.get("LAST")),
+                        "prev_close": _to_float(r.get("PREVCLOSE")),
+                        "volume": _to_int(r.get("TOTTRDQTY")) or 0,
+                        "turnover": _to_float(r.get("TOTTRDVAL")),
+                        "trades": _to_int(r.get("TOTALTRADES")),
+                        "delivery_volume": None, "delivery_pct": None,
+                        "high_52w": None, "low_52w": None,
+                    })
+                except (KeyError, ValueError) as e:
+                    logger.warning("Skipping malformed legacy bhavcopy row {}: {}", symbol, e)
+        logger.info("Bhavcopy {} (legacy): parsed {} equity rows", run_date, len(rows))
+        return rows
+
     with zf.open(csv_names[0]) as f:
         text = io.TextIOWrapper(f, encoding="utf-8", newline="")
         reader = csv.DictReader(text)

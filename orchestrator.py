@@ -186,7 +186,7 @@ SCRAPERS_ALL = [
 ]
 
 
-def run_for_date(run_date: date, *, scrapers: list[str], dry: bool) -> dict:
+def run_for_date(run_date: date, *, scrapers: list[str], dry: bool, preprocess: bool = True) -> dict:
     cfg = get_config()
     indices = cfg.get("indices", [])
     corp_symbols = cfg.get("corp_actions_symbols", [])
@@ -257,12 +257,13 @@ def run_for_date(run_date: date, *, scrapers: list[str], dry: bool) -> dict:
         session.close()
 
     if not dry:
-        try:
-            preprocess_summary = preprocess_runner.run_all(snapshot_date=run_date)
-            summary["preprocess"] = preprocess_summary
-        except Exception as e:
-            logger.error("Preprocessing failed: {}", e)
-            summary["preprocess_error"] = str(e)
+        if preprocess:
+            try:
+                preprocess_summary = preprocess_runner.run_all(snapshot_date=run_date)
+                summary["preprocess"] = preprocess_summary
+            except Exception as e:
+                logger.error("Preprocessing failed: {}", e)
+                summary["preprocess_error"] = str(e)
 
         # Mirror today's snapshot to Parquet for the DuckDB analytical layer.
         try:
@@ -309,6 +310,8 @@ def cli() -> None:
     p.add_argument("--backfill", action="store_true")
     p.add_argument("--from", dest="from_", help="YYYY-MM-DD (with --backfill)")
     p.add_argument("--to", dest="to_", help="YYYY-MM-DD (with --backfill)")
+    p.add_argument("--pause", type=int, default=None,
+                   help="Seconds between backfill days (default: config backfill.pause_between_days_seconds)")
     args = p.parse_args()
 
     setup_logging()
@@ -320,15 +323,19 @@ def cli() -> None:
         start = datetime.strptime(args.from_, "%Y-%m-%d").date()
         end = datetime.strptime(args.to_, "%Y-%m-%d").date()
         days = trading_days_between(start, end)
-        pause = int(get_config().get("backfill", {}).get("pause_between_days_seconds", 30))
+        pause = args.pause if args.pause is not None else int(
+            get_config().get("backfill", {}).get("pause_between_days_seconds", 30))
         logger.info("Backfill from {} to {}: {} trading days", start, end, len(days))
         for d in days:
             logger.info("---- backfill {} ----", d)
             try:
-                run_for_date(d, scrapers=enabled, dry=args.dry_run)
+                run_for_date(d, scrapers=enabled, dry=args.dry_run, preprocess=False)
             except Exception as e:  # e.g. NSE homepage timeout while opening the session
                 logger.error("backfill {} aborted: {}", d, e)
             _time.sleep(pause)
+        if not args.dry_run:
+            logger.info("Backfill done; running preprocessing once")
+            preprocess_runner.run_all()
         return
 
     run_date = date.today() if args.date == "today" else datetime.strptime(args.date, "%Y-%m-%d").date()

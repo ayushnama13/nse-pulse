@@ -1,6 +1,8 @@
 """Index EOD scraper. Pulls live values from /api/equity-stockIndices for each tracked index."""
 from __future__ import annotations
 
+import csv
+import io
 import urllib.parse
 from datetime import date
 from typing import Any
@@ -11,7 +13,36 @@ from ..session import NSESession
 from ..utils.config import get_endpoints
 
 
+def _fetch_index_archive(session: NSESession, run_date: date) -> list[dict[str, Any]]:
+    """Closing values for every index from NSE's per-day archive CSV (used for past dates)."""
+    url = f"https://archives.nseindia.com/content/indices/ind_close_all_{run_date.strftime('%d%m%Y')}.csv"
+    text = session.get(url, expect_json=False)
+    if isinstance(text, bytes):
+        text = text.decode("utf-8", errors="replace")
+    out: list[dict[str, Any]] = []
+    for r in csv.DictReader(io.StringIO(text)):
+        close = _to_float(r.get("Closing Index Value"))
+        name = (r.get("Index Name") or "").strip().upper()
+        if close is None or not name:
+            continue
+        out.append({
+            "date": run_date,
+            "index_name": name,
+            "open": _to_float(r.get("Open Index Value")),
+            "high": _to_float(r.get("High Index Value")),
+            "low": _to_float(r.get("Low Index Value")),
+            "close": close,
+            "pe": _to_float(r.get("P/E")),
+            "pb": _to_float(r.get("P/B")),
+            "div_yield": _to_float(r.get("Div Yield")),
+        })
+    logger.info("index_eod {} (archive): parsed {} indices", run_date, len(out))
+    return out
+
+
 def fetch_index_eod(session: NSESession, run_date: date, index_names: list[str]) -> list[dict[str, Any]]:
+    if run_date < date.today():
+        return _fetch_index_archive(session, run_date)
     tpl = get_endpoints()["mvp"]["equity_stock_indices"]
     out: list[dict[str, Any]] = []
 
