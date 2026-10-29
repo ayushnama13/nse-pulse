@@ -10,9 +10,9 @@ from src.session import NSESession
 
 def fetch_delivery(session: NSESession, d: date) -> list[dict]:
     """
-    MTO_{DDMMYYYY}.DAT — pipe-separated delivery data.
+    MTO_{DDMMYYYY}.DAT — comma-separated delivery data.
     Record type 20 = per-security delivery details.
-    Format: 20|N|SYMBOL|SERIES|TRADEDQTY|DELIVQTY|DELIV_PCT
+    Format: 20,N,SYMBOL,SERIES,TRADEDQTY,DELIVQTY,DELIV_PCT
     """
     ep = _load_endpoints()
     url = ep["equity"]["delivery"].replace("{date}", _fmt_ddmmyyyy(d))
@@ -21,7 +21,7 @@ def fetch_delivery(session: NSESession, d: date) -> list[dict]:
 
     records: list[dict] = []
     for line in lines:
-        parts = [p.strip() for p in line.split("|")]
+        parts = [p.strip() for p in line.split(",")]
         if len(parts) < 7 or parts[0] != "20":
             continue
         records.append({
