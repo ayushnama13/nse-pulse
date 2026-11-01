@@ -64,3 +64,6 @@ CLAUDE.md
 **/CONVERSATION_RESUME.md
 **/HANDOFF.md
 node_modules/
+
+# Fundamentals fetch shards (merged into nse.db)
+data/shards/
