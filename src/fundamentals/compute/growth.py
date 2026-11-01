@@ -34,13 +34,13 @@ def _pct(end, start) -> float | None:
 def compute_growth(symbol: str) -> int:
     rows = db.fetch_all(
         "SELECT fiscal_year, revenue_cr, pat_cr, ebitda_cr, eps_basic "
-        "FROM financials_annual WHERE symbol=%s AND is_consolidated=TRUE "
+        "FROM financials_annual WHERE symbol=%s AND 1=1 "
         "ORDER BY fiscal_year",
         (symbol,),
     )
     bs_rows = db.fetch_all(
         "SELECT fiscal_year, equity_cr FROM balance_sheet WHERE symbol=%s "
-        "AND is_consolidated=TRUE ORDER BY fiscal_year",
+        "AND 1=1 ORDER BY fiscal_year",
         (symbol,),
     )
     bs_by_fy = {r["fiscal_year"]: r["equity_cr"] for r in bs_rows}

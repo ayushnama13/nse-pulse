@@ -46,18 +46,18 @@ def _yoy_pct(prev, curr) -> float | None:
 def compute_risk_flags(symbol: str) -> int:
     fin = db.fetch_all(
         "SELECT fiscal_year,revenue_cr,pat_cr FROM financials_annual "
-        "WHERE symbol=%s AND is_consolidated=TRUE ORDER BY fiscal_year",
+        "WHERE symbol=%s AND 1=1 ORDER BY fiscal_year",
         (symbol,),
     )
     bs = db.fetch_all(
         "SELECT fiscal_year,total_debt_cr,trade_receivables_cr,inventory_cr,"
         "current_assets_cr FROM balance_sheet "
-        "WHERE symbol=%s AND is_consolidated=TRUE ORDER BY fiscal_year",
+        "WHERE symbol=%s AND 1=1 ORDER BY fiscal_year",
         (symbol,),
     )
     cf = db.fetch_all(
         "SELECT fiscal_year,fcf_cr,cfo_cr,capex_cr FROM cash_flow "
-        "WHERE symbol=%s AND is_consolidated=TRUE ORDER BY fiscal_year",
+        "WHERE symbol=%s AND 1=1 ORDER BY fiscal_year",
         (symbol,),
     )
     sh = db.fetch_one(

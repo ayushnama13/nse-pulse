@@ -25,17 +25,17 @@ def _safe_div(a, b):
 def compute_ratios_for_year(symbol: str, fiscal_year: int) -> bool:
     pl = db.fetch_one(
         "SELECT * FROM financials_annual WHERE symbol=%s AND fiscal_year=%s "
-        "AND is_consolidated=TRUE",
+        "AND 1=1",
         (symbol, fiscal_year),
     )
     bs = db.fetch_one(
         "SELECT * FROM balance_sheet WHERE symbol=%s AND fiscal_year=%s "
-        "AND is_consolidated=TRUE",
+        "AND 1=1",
         (symbol, fiscal_year),
     )
     cf = db.fetch_one(
         "SELECT * FROM cash_flow WHERE symbol=%s AND fiscal_year=%s "
-        "AND is_consolidated=TRUE",
+        "AND 1=1",
         (symbol, fiscal_year),
     )
     if pl is None or bs is None:
@@ -100,7 +100,7 @@ def compute_ratios_for_year(symbol: str, fiscal_year: int) -> bool:
 def compute_ratios_all_years(symbol: str) -> int:
     years = db.fetch_all(
         "SELECT DISTINCT fiscal_year FROM financials_annual "
-        "WHERE symbol=%s AND is_consolidated=TRUE ORDER BY fiscal_year",
+        "WHERE symbol=%s AND 1=1 ORDER BY fiscal_year",
         (symbol,),
     )
     n = 0

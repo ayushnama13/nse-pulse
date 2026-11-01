@@ -57,12 +57,12 @@ def compute_valuations(symbol: str) -> int:
     # Inputs
     pl = db.fetch_one(
         "SELECT eps_basic FROM financials_annual WHERE symbol=%s "
-        "AND is_consolidated=TRUE ORDER BY fiscal_year DESC LIMIT 1",
+        "AND 1=1 ORDER BY fiscal_year DESC LIMIT 1",
         (symbol,),
     )
     bs = db.fetch_one(
         "SELECT equity_cr FROM balance_sheet WHERE symbol=%s "
-        "AND is_consolidated=TRUE ORDER BY fiscal_year DESC LIMIT 1",
+        "AND 1=1 ORDER BY fiscal_year DESC LIMIT 1",
         (symbol,),
     )
     sh = db.fetch_one(
@@ -97,7 +97,7 @@ def compute_valuations(symbol: str) -> int:
     # DCF — needs last FCF and historical growth
     fcfs = db.fetch_all(
         "SELECT fiscal_year, fcf_cr, cfo_cr, capex_cr FROM cash_flow "
-        "WHERE symbol=%s AND is_consolidated=TRUE ORDER BY fiscal_year",
+        "WHERE symbol=%s AND 1=1 ORDER BY fiscal_year",
         (symbol,),
     )
     fcf_series: list[float] = []
