@@ -69,6 +69,28 @@ def _annual_fy(d: date) -> int:
     return d.year if d.month <= 3 else d.year + 1
 
 
+def _is_annual_col(cols: list[str], i: int) -> bool:
+    """False for half-year columns (e.g. 'Sep 2026' next to 'Mar 2026') mislabelled as a new fiscal year."""
+    d = _parse_header_date(cols[i])
+    if d is None:
+        return False
+    for j in range(i - 1, -1, -1):
+        p = _parse_header_date(cols[j])
+        if p is not None:
+            return (d - p).days > 300
+    return True
+
+
+def _is_stale(soup: BeautifulSoup) -> bool:
+    """Screener sometimes serves a frozen old table (e.g. ends Mar 2015) on the /consolidated/ page."""
+    headers, _ = _extract_section_table(soup, "profit-loss")
+    dates = [d for d in (_parse_header_date(h) for h in (headers or [])[1:]) if d]
+    if not dates or (date.today() - max(dates)).days > 20 * 30:
+        return True
+    qh, _ = _extract_section_table(soup, "quarters")
+    return not any(_parse_header_date(h) for h in (qh or [])[1:])
+
+
 def _quarter_label(d: date) -> str:
     """'Mar 2024' -> 'Q4FY24'; 'Jun 2024' -> 'Q1FY25'."""
     fy = d.year + 1 if d.month >= 4 else d.year
@@ -108,8 +130,10 @@ class ScreenerRateLimited(Exception): ...
 
 
 @network_retry
-def _fetch_html(session: requests.Session, slug: str) -> str:
+def _fetch_html(session: requests.Session, slug: str, consolidated: bool = True) -> str:
     url = BASE.format(slug=slug)
+    if not consolidated:
+        url = url.replace("/consolidated/", "/")
     r = session.get(url, timeout=config.HTTP_TIMEOUT)
     if r.status_code == 404:
         raise ScreenerNotFound(slug)
@@ -177,7 +201,7 @@ def _parse_profit_loss(soup, sym: str) -> list[dict]:
     out: list[dict] = []
     for i, h in enumerate(cols):
         d = _parse_header_date(h)
-        if d is None:
+        if d is None or not _is_annual_col(cols, i):
             continue
         fy = _annual_fy(d)
         rev = _num(sales[i]) if i < len(sales) else None
@@ -244,7 +268,7 @@ def _parse_balance_sheet(soup, sym: str) -> list[dict]:
     out: list[dict] = []
     for i, h in enumerate(cols):
         d = _parse_header_date(h)
-        if d is None:
+        if d is None or not _is_annual_col(cols, i):
             continue
         fy = _annual_fy(d)
         eq = (_num(eq_cap[i] if i < len(eq_cap) else None) or 0) + \
@@ -315,7 +339,7 @@ def _parse_cash_flow(soup, sym: str) -> list[dict]:
     out: list[dict] = []
     for i, h in enumerate(cols):
         d = _parse_header_date(h)
-        if d is None:
+        if d is None or not _is_annual_col(cols, i):
             continue
         fy = _annual_fy(d)
         cfo_v = _num(cfo[i]) if i < len(cfo) else None
@@ -478,11 +502,23 @@ def fetch_company(symbol: str) -> dict[str, int]:
             return counts
 
         soup = BeautifulSoup(html, "lxml")
+        cons = True
+        if _is_stale(soup):
+            # Frozen/empty consolidated tables: use the standalone statements instead.
+            time.sleep(config.SCREENER_DELAY_SEC)
+            try:
+                soup2 = BeautifulSoup(_fetch_html(s, slug, consolidated=False), "lxml")
+                if not _is_stale(soup2):
+                    soup, cons = soup2, False
+            except (ScreenerNotFound, ScreenerRateLimited):
+                pass
 
         # All statement upserts use COALESCE — Screener doesn't break out every
         # field that yfinance has (e.g. capex_cr, st_debt_cr, inventory_cr), and
         # without COALESCE Screener's NULLs would wipe yfinance's real values.
         ann = _parse_profit_loss(soup, sym)
+        for _r in ann:
+            _r["is_consolidated"] = cons
         if ann:
             ann_cols = [c for c in ann[0].keys()
                         if c not in ("symbol", "fiscal_year", "is_consolidated")]
@@ -492,6 +528,8 @@ def fetch_company(symbol: str) -> dict[str, int]:
                 coalesce_cols=ann_cols,
             )
         bs = _parse_balance_sheet(soup, sym)
+        for _r in bs:
+            _r["is_consolidated"] = cons
         if bs:
             bs_cols = [c for c in bs[0].keys()
                        if c not in ("symbol", "fiscal_year", "is_consolidated")]
@@ -501,6 +539,8 @@ def fetch_company(symbol: str) -> dict[str, int]:
                 coalesce_cols=bs_cols,
             )
         cf = _parse_cash_flow(soup, sym)
+        for _r in cf:
+            _r["is_consolidated"] = cons
         if cf:
             cf_cols = [c for c in cf[0].keys()
                        if c not in ("symbol", "fiscal_year", "is_consolidated")]
@@ -510,6 +550,8 @@ def fetch_company(symbol: str) -> dict[str, int]:
                 coalesce_cols=cf_cols,
             )
         qt = _parse_quarters(soup, sym)
+        for _r in qt:
+            _r["is_consolidated"] = cons
         if qt:
             qt_cols = [c for c in qt[0].keys()
                        if c not in ("symbol", "quarter", "is_consolidated")]
