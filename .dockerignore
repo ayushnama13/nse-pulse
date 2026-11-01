@@ -26,3 +26,5 @@ ruvector.db
 .idea
 .vscode
 docs
+src/oipulse/frontend/node_modules
+src/oipulse/frontend/dist
