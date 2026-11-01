@@ -22,6 +22,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.fundamentals.compute.valuation import _avg_growth, _dcf  # noqa: E402
+from src.scrapers.dividend_parse import choose_shares, parse_dividend_per_share, trailing_dividend  # noqa: E402
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--universe", default="NIFTY_500")
@@ -83,6 +84,18 @@ an = pd.read_sql_query("select symbol, fiscal_year, revenue_cr, pat_cr, eps_basi
 bs = pd.read_sql_query("select symbol, fiscal_year, equity_cr from balance_sheet order by symbol, fiscal_year", con)
 gm = pd.read_sql_query("select symbol, fiscal_year, eps_growth_yoy from growth_metrics order by symbol, fiscal_year", con)
 cf = pd.read_sql_query("select symbol, fiscal_year, fcf_cr, cfo_cr, capex_cr from cash_flow order by symbol, fiscal_year", con)
+pledges = pd.read_sql_query("""select p.symbol, p.total_shares from promoter_pledge p
+    join (select symbol, max(as_of) as as_of from promoter_pledge group by symbol) latest
+    on p.symbol=latest.symbol and p.as_of=latest.as_of""", con) if con.execute(
+        "select 1 from sqlite_master where type='table' and name='promoter_pledge'").fetchone() else pd.DataFrame(columns=["symbol", "total_shares"])
+pledge_shares = {r.symbol: r.total_shares for r in pledges.itertuples()}
+action_rows = con.execute("select symbol, action_type, description, ex_date from corporate_actions where ex_date between date(?, '-365 days') and ?",
+                          (asof, asof)).fetchall()
+actions_by_symbol = {}
+for symbol, kind, description, ex_date in action_rows:
+    actions_by_symbol.setdefault(symbol, []).append((kind, description, ex_date))
+share_counts = {"xbrl-used": 0, "fallback": 0, "disagree": 0}
+split_warning = {"n": 0}
 
 
 def valrow(sym: str) -> dict | None:
@@ -98,7 +111,11 @@ def valrow(sym: str) -> dict | None:
         pat, eps, rev = a.pat_cr.iloc[0], a.eps_basic.iloc[0], a.revenue_cr.iloc[0]
     else:
         return None
-    shares = pat / eps if eps and pat / eps > 0 else None  # crore shares
+    eps_shares = pat / eps if eps and pat / eps > 0 else None  # crore shares
+    raw_xbrl = pledge_shares.get(sym)
+    xbrl_shares = float(raw_xbrl) / 1e7 if pd.notna(raw_xbrl) and raw_xbrl > 0 else None
+    shares, share_source = choose_shares(xbrl_shares, eps_shares)
+    share_counts[share_source] += 1
     if not shares:
         return None
     mcap = price * shares  # price (INR) * crore shares = crore INR
@@ -113,14 +130,26 @@ def valrow(sym: str) -> dict | None:
     dcf = None
     if len(f) >= 3 and f[-1] > 0:
         dcf = _dcf(f[-1], _avg_growth(f) or 0.0) / shares
+    div_rows = actions_by_symbol.get(sym, [])
+    div_ps = trailing_dividend(div_rows, asof)
+    split_dates = [pd.Timestamp(d).date() for kind, _, d in div_rows if str(kind).upper() in ("SPLIT", "BONUS")]
+    if split_dates:
+        for kind, description, ex_date in div_rows:
+            if (str(kind).upper() == "DIVIDEND" and parse_dividend_per_share(description) is not None
+                    and any(pd.Timestamp(ex_date).date() < sd for sd in split_dates)):
+                split_warning["n"] += 1
     return dict(symbol=sym, date=asof, market_cap_cr=mcap, pe_ttm=pe,
                 pb=price / bvps if bvps and bvps > 0 else None,
                 ps=mcap / rev if rev and rev > 0 else None, peg=peg,
-                earnings_yield=100 / pe if pe else None, graham_number=graham, dcf_intrinsic=dcf)
+                earnings_yield=100 / pe if pe else None,
+                dividend_yield=div_ps / price * 100 if price and price > 0 else None,
+                graham_number=graham, dcf_intrinsic=dcf)
 
 
 vrows = [v for s in syms if (v := valrow(s))]
 print("valuation computed:", len(vrows))
+print("share counts:", ", ".join(f"{key}={value}" for key, value in share_counts.items()))
+print("dividends before split/bonus (adjustment skipped):", split_warning["n"])
 
 if args.dry_run:
     for s in ("RELIANCE", "PIDILITIND", "AUBANK"):

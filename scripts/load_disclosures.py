@@ -55,6 +55,9 @@ def _schema(connection: sqlite3.Connection | None) -> None:
             PRIMARY KEY (symbol, acquirer, disclosed_at)
         );
     """)
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(promoter_pledge)")}
+    if "total_shares" not in columns:
+        connection.execute("ALTER TABLE promoter_pledge ADD COLUMN total_shares INTEGER")
     connection.commit()
 
 
@@ -145,7 +148,7 @@ def run(command: str, args: argparse.Namespace, session: NSESession,
                 if not filing:
                     continue
                 if connection is not None and not args.force:
-                    exists = connection.execute("SELECT 1 FROM promoter_pledge WHERE symbol = ? AND as_of = ?",
+                    exists = connection.execute("SELECT 1 FROM promoter_pledge WHERE symbol = ? AND as_of = ? AND total_shares IS NOT NULL",
                                                 (symbol, filing["as_of"])).fetchone()
                     if exists:
                         continue
@@ -160,13 +163,14 @@ def run(command: str, args: argparse.Namespace, session: NSESession,
                            "pledged_shares": facts["pledged_shares"],
                            "pledged_pct_of_total": facts["pledged_pct_of_total"],
                            "pledged_pct_of_promoter": facts["pledged_pct_of_promoter"],
+                           "total_shares": facts["total_shares"],
                            "any_pledge": int(facts["any_pledge"]), "source_url": url,
                            "updated_at": datetime.now().isoformat(sep=" ")}
                     count += 1
                     if connection is not None:
                         upsert_rows(connection, "promoter_pledge", [row], ("symbol", "as_of"),
                                     ("quarter", "promoter_pct", "pledged_shares", "pledged_pct_of_total",
-                                     "pledged_pct_of_promoter", "any_pledge", "source_url", "updated_at"))
+                                     "pledged_pct_of_promoter", "total_shares", "any_pledge", "source_url", "updated_at"))
                         connection.execute("UPDATE fd_shareholding SET promoter_pledge_pct = ? WHERE symbol = ? AND quarter = ?",
                                            (facts["pledged_pct_of_promoter"], symbol, filing["quarter"]))
                         connection.commit()
