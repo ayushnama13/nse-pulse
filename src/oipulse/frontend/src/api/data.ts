@@ -5,7 +5,7 @@ import { apiGet } from './client'
 type P = Record<string, string | number | undefined>
 
 const get = <T = any>(key: string, path: string, params?: P, enabled = true) =>
-  useQuery<T>({ queryKey: [key, path, params ?? {}], queryFn: () => apiGet<T>(path, params), enabled, staleTime: 60_000 })
+  useQuery<T>({ queryKey: [key, path, params ?? {}], queryFn: () => apiGet<T>(`/data${path}`, params), enabled, staleTime: 60_000 })
 
 export const useDeliveryLeaders = (date?: string, minVolume?: number, limit?: number) =>
   get('data', '/delivery/leaders', { date, min_volume: minVolume, limit })

@@ -40,8 +40,8 @@ export function FiiDerivTab() {
                 <DataTable
                   rows={summary.map((r) => ({
                     ...r,
-                    net_value_cr: <span style={{ color: (r.net_value_cr || 0) >= 0 ? 'var(--bull, #26a69a)' : 'var(--bear, #ef5350)' }}>{r.net_value_cr}</span>,
-                    net_5d_sum: <span style={{ color: (r.net_5d_sum || 0) >= 0 ? 'var(--bull, #26a69a)' : 'var(--bear, #ef5350)' }}>{r.net_5d_sum}</span>,
+                    net_value_cr: Math.round((r.net_value_cr ?? 0) * 100) / 100,
+                    net_5d_sum: Math.round((r.net_5d_sum ?? 0) * 100) / 100,
                   }))}
                 />
               </>

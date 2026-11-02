@@ -8,7 +8,7 @@ import { useDeliveryLeaders, useDeliveryHistory } from '@/api/data'
 const tick = (s: string) => openTicker(s)
 
 export function DeliveryTab() {
-  const [minVolume, setMinVolume] = useState<number | undefined>(undefined)
+  const [minVolume, setMinVolume] = useState<number | undefined>(100000)
   const [dateInput, setDateInput] = useState<string>('')
   const [selectedSymbol, setSelectedSymbol] = useState<string>('RELIANCE')
 
@@ -53,7 +53,6 @@ export function DeliveryTab() {
               <DataTable
                 rows={rows}
                 link={{ symbol: tick }}
-                // @ts-expect-error onRow is valid in antd table passed via rows/custom
               />
             </Section>
 

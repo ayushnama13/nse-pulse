@@ -51,6 +51,13 @@ const FHealthTab = lazy(() => import('./tabs/research/FundamentalsTabs').then((m
 const PortfolioTab = lazy(() => import('./tabs/research/PortfolioTabs').then((m) => ({ default: m.PortfolioTab })))
 const AlertsTab = lazy(() => import('./tabs/research/PortfolioTabs').then((m) => ({ default: m.AlertsTab })))
 const WatchlistsTab = lazy(() => import('./tabs/research/PortfolioTabs').then((m) => ({ default: m.WatchlistsTab })))
+const DeliveryTab = lazy(() => import('./tabs/data/delivery').then((m) => ({ default: m.DeliveryTab })))
+const RestrictionsTab = lazy(() => import('./tabs/data/restrictions').then((m) => ({ default: m.RestrictionsTab })))
+const FiiDerivTab = lazy(() => import('./tabs/data/fiideriv').then((m) => ({ default: m.FiiDerivTab })))
+const InsiderTab = lazy(() => import('./tabs/data/insider').then((m) => ({ default: m.InsiderTab })))
+const PledgeTab = lazy(() => import('./tabs/data/pledge').then((m) => ({ default: m.PledgeTab })))
+const IpoTab = lazy(() => import('./tabs/data/ipo').then((m) => ({ default: m.IpoTab })))
+const EtfTab = lazy(() => import('./tabs/data/etf').then((m) => ({ default: m.EtfTab })))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -109,13 +116,13 @@ const TAB_COMPONENTS: Partial<Record<TabKey, ComponentType>> = {
   eodchain: EodChainTab,
   news: NewsTab,
   dq: DataQualityTab,
-  delivery: () => <Placeholder name="Delivery" />,
-  restrictions: () => <Placeholder name="Bans & Bands" />,
-  fiideriv: () => <Placeholder name="FII Derivatives" />,
-  insider: () => <Placeholder name="Insider & SAST" />,
-  pledge: () => <Placeholder name="Promoter Pledge" />,
-  ipo: () => <Placeholder name="IPOs" />,
-  etf: () => <Placeholder name="ETFs" />,
+  delivery: DeliveryTab,
+  restrictions: RestrictionsTab,
+  fiideriv: FiiDerivTab,
+  insider: InsiderTab,
+  pledge: PledgeTab,
+  ipo: IpoTab,
+  etf: EtfTab,
   fdash: FDashTab,
   fcompanies: FCompaniesTab,
   fcompany: FCompanyTab,
