@@ -4,8 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { darkTheme, lightTheme } from './theme'
 import { useShell } from './store'
 import { useHashSync, type TabKey } from './router'
-import { SECTIONS } from './nav'
-import { TAB_LABELS, OPTION_TABS } from './nav'
+import { MENUS, TAB_LABELS, OPTION_TABS } from './nav'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOptionChain, useForceSnapshot, qk } from './api/queries'
 import { subscribeLive } from './api/live'
@@ -57,9 +56,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 })
 
-/** Live data orchestration: WS push (primary) + poll fallback → store.
- *  While WS is healthy the poll relaxes to 60s; push frames are also written
- *  into the query cache so both stay consistent. */
+/** Live data orchestration: WS push (primary) + poll fallback → store. */
 function useLiveData() {
   const symbol = useShell((s) => s.symbol)
   const expiry = useShell((s) => s.expiry)
@@ -80,7 +77,6 @@ function useLiveData() {
       symbol,
       (snap) => {
         apply(snap)
-        // keep the query cache in sync so components reading the hook see pushes
         qc.setQueryData(qk.optionChain(symbol, undefined), snap)
       },
       setTransport,
@@ -104,15 +100,35 @@ const TAB_COMPONENTS: Partial<Record<TabKey, ComponentType>> = {
   compare: CompareTab,
   calendar: CalendarTab,
   payoff: PayoffTab,
-  market: MarketTab, ticker: TickerTab, indices: IndicesTab, fiidii: FiiDiiTab, deals: DealsTab, screener: ScreenerTab,
-  eodchain: EodChainTab, news: NewsTab, dq: DataQualityTab,
-  fdash: FDashTab, fcompanies: FCompaniesTab, fcompany: FCompanyTab, fsectors: FSectorsTab, ftop: FTopTab,
-  fscreens: FScreensTab, fsql: FSqlTab, fhealth: FHealthTab,
-  portfolio: PortfolioTab, alerts: AlertsTab, watchlists: WatchlistsTab,
+  market: MarketTab,
+  ticker: TickerTab,
+  indices: IndicesTab,
+  fiidii: FiiDiiTab,
+  deals: DealsTab,
+  screener: ScreenerTab,
+  eodchain: EodChainTab,
+  news: NewsTab,
+  dq: DataQualityTab,
+  delivery: () => <Placeholder name="Delivery" />,
+  restrictions: () => <Placeholder name="Bans & Bands" />,
+  fiideriv: () => <Placeholder name="FII Derivatives" />,
+  insider: () => <Placeholder name="Insider & SAST" />,
+  pledge: () => <Placeholder name="Promoter Pledge" />,
+  ipo: () => <Placeholder name="IPOs" />,
+  etf: () => <Placeholder name="ETFs" />,
+  fdash: FDashTab,
+  fcompanies: FCompaniesTab,
+  fcompany: FCompanyTab,
+  fsectors: FSectorsTab,
+  ftop: FTopTab,
+  fscreens: FScreensTab,
+  fsql: FSqlTab,
+  fhealth: FHealthTab,
+  portfolio: PortfolioTab,
+  alerts: AlertsTab,
+  watchlists: WatchlistsTab,
 }
 
-/** One tab crashing must never black out the shell — contain it, keep the
- *  rest of the terminal alive. Keyed by tab so navigation resets the error. */
 class TabBoundary extends Component<{ children: ReactNode }, { err: Error | null }> {
   state = { err: null as Error | null }
   static getDerivedStateFromError(err: Error) {
@@ -157,18 +173,16 @@ function Shell() {
   const theme = useShell((s) => s.theme)
   const density = useShell((s) => s.density)
   const force = useForceSnapshot()
-  const snapNow = force.mutate // stable across renders (TanStack v5)
+  const snapNow = force.mutate
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
 
-  // reflect theme/density on <html> for CSS hooks
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.documentElement.classList.toggle('dark', theme === 'dark')
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : 'comfortable'
   }, [theme, density])
 
-  // keyboard shortcuts: Ctrl/⌘+K palette, 1–7 sections, S snapshot, ? help
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -179,9 +193,12 @@ function Shell() {
       if (e.ctrlKey || e.metaKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t && ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) return
-      if (e.key >= '1' && e.key <= '9') {
-        const sec = SECTIONS[parseInt(e.key, 10) - 1]
-        if (sec) setTab(sec.tabs[0])
+      if (e.key >= '1' && e.key <= '6') {
+        const menu = MENUS[parseInt(e.key, 10) - 1]
+        if (menu) {
+          const firstTab = menu.link || menu.items?.[0]?.key || menu.groups?.[0]?.items?.[0]?.key
+          if (firstTab) setTab(firstTab)
+        }
       } else if (e.key === 's' || e.key === 'S') {
         snapNow({ symbol, expiry })
       } else if (e.key === '?') {

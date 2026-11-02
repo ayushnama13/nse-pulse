@@ -1,7 +1,7 @@
 import { Modal, Table } from 'antd'
 
 const SHORTCUTS = [
-  { combo: '1 – 7', action: 'Jump to a top-bar section' },
+  { combo: '1 – 6', action: 'Jump to a top-bar menu' },
   { combo: 'S', action: 'Force a snapshot' },
   { combo: 'Ctrl / ⌘ + K', action: 'Open the command palette' },
   { combo: '?', action: 'Show this shortcuts panel' },
