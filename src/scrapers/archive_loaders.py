@@ -96,3 +96,34 @@ def parse_fo_lot_sizes(data: bytes, as_of: str | None = None) -> list[dict]:
 def parse_constituents(data: bytes) -> list[dict]:
     return [{k: (v or "").strip() for k, v in row.items()}
             for row in csv.DictReader(io.StringIO(_text(data))) if (row.get("Symbol") or "").strip()]
+
+
+def parse_fo_bhavcopy_legacy(data: bytes) -> list[dict]:
+    """Pre-2024-07-08 F&O bhavcopy (fo<DDMONYYYY>bhav.csv); turnover is converted from lakh to rupees."""
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        csv_names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
+        if not csv_names:
+            raise ValueError("F&O archive contains no CSV")
+        text = _text(archive.read(csv_names[0]))
+    result = []
+    for row in csv.DictReader(io.StringIO(text)):
+        instrument = (row.get("INSTRUMENT") or "").strip().upper()
+        if instrument not in ("FUTIDX", "OPTIDX", "FUTSTK", "OPTSTK"):
+            continue
+        try:
+            day = datetime.strptime((row.get("TIMESTAMP") or "").strip().title(), "%d-%b-%Y").date().isoformat()
+            expiry = datetime.strptime((row.get("EXPIRY_DT") or "").strip().title(), "%d-%b-%Y").date().isoformat()
+        except ValueError:
+            continue
+        futures = instrument.startswith("FUT")
+        opt = (row.get("OPTION_TYP") or "").strip().upper()
+        value = _number(row.get("VAL_INLAKH"))
+        result.append({"date": day, "instrument": instrument, "symbol": (row.get("SYMBOL") or "").strip(),
+            "expiry_date": expiry, "strike_price": 0.0 if futures else (_number(row.get("STRIKE_PR")) or 0.0),
+            "option_type": "XX" if futures else (opt or "XX"),
+            "open": _number(row.get("OPEN")), "high": _number(row.get("HIGH")), "low": _number(row.get("LOW")),
+            "close": _number(row.get("CLOSE")), "settle_price": _number(row.get("SETTLE_PR")),
+            "contracts": _number(row.get("CONTRACTS"), True),
+            "turnover": value * 100000 if value is not None else None,
+            "oi": _number(row.get("OPEN_INT"), True), "change_in_oi": _number(row.get("CHG_IN_OI"), True)})
+    return result

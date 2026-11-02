@@ -5,11 +5,12 @@ import argparse, random, sqlite3, sys, time
 from datetime import date, timedelta
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.scrapers.archive_loaders import parse_fo_bhavcopy
+from src.scrapers.archive_loaders import parse_fo_bhavcopy, parse_fo_bhavcopy_legacy
 from src.session import NSESession
 
 URL='https://nsearchives.nseindia.com/content/fo/BhavCopy_NSE_FO_0_0_0_{:%Y%m%d}_F_0000.csv.zip'
 UPSERT='''INSERT INTO fo_eod(date,instrument,symbol,expiry_date,strike_price,option_type,open,high,low,close,settle_price,contracts,turnover,oi,change_in_oi) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(date,instrument,symbol,expiry_date,strike_price,option_type) DO UPDATE SET open=excluded.open,high=excluded.high,low=excluded.low,close=excluded.close,settle_price=excluded.settle_price,contracts=excluded.contracts,turnover=excluded.turnover,oi=excluded.oi,change_in_oi=excluded.change_in_oi'''
+LEGACY='https://nsearchives.nseindia.com/content/historical/DERIVATIVES/{:%Y}/{:%b}/fo{:%d%b%Y}bhav.csv.zip'
 COLS=('date','instrument','symbol','expiry_date','strike_price','option_type','open','high','low','close','settle_price','contracts','turnover','oi','change_in_oi')
 def main():
     ap=argparse.ArgumentParser(description=__doc__); ap.add_argument('--db',default='data/nse.db'); ap.add_argument('--from',dest='start',type=date.fromisoformat); ap.add_argument('--to',dest='end',type=date.fromisoformat,default=date.today()); ap.add_argument('--days',type=int,default=30); ap.add_argument('--delay',type=float,default=1.5); ap.add_argument('--dry-run',action='store_true'); a=ap.parse_args()
@@ -23,9 +24,10 @@ def main():
     loaded=skipped=failures=0
     with NSESession() as session:
         for d in dates:
-            if d<date(2024,7,8): print(f'{d}: pre-UDiFF format unsupported; skipped'); skipped+=1; continue
             if d.isoformat() in present: skipped+=1; continue
-            try: raw=session.download(URL.format(d)); rows=parse_fo_bhavcopy(raw)
+            try:
+                if d<date(2024,7,8): raw=session.download(LEGACY.format(d,d,d).replace(d.strftime('%b'),d.strftime('%b').upper())); rows=parse_fo_bhavcopy_legacy(raw)
+                else: raw=session.download(URL.format(d)); rows=parse_fo_bhavcopy(raw)
             except Exception as exc:
                 if '404' in str(exc): print(f'{d}: archive not found (holiday/non-trading), skipped'); continue
                 failures+=1; print(f'{d}: failed: {exc}')
