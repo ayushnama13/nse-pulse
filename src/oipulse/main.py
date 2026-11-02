@@ -173,9 +173,11 @@ app.add_middleware(
 
 # --- merged NSE Pulse backends: EOD research API + fundamentals (JSON via Accept header) ---
 from .research_api import router as _research_router  # noqa: E402
+from .market_data_api import router as _market_data_router  # noqa: E402
 from ..fundamentals.web.app import app as _fundamentals_app  # noqa: E402
 
 app.include_router(_research_router)
+app.include_router(_market_data_router)
 app.mount("/api/fundamentals", _fundamentals_app)
 
 
